@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Alphito4_ex03</title>
+<style>
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 250px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 6;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+</style>
+    <script id="basicMapObject" src="basicMapObject.jsafe"></script>
+    <script id="tilesFLST" src="tilesFLST.jsafe"></script>
+  </head>
+  <body id="body" style="background-image: url('Parched_Sea_3_10000.png');" >
+    
+    <form id="xyForm" style="display:none; position: absolute;top: 4500px;left: 4500px;width: 200px;height: 100px;border: 2px solid #0000FF;z-index: 5;;background-color:white">
+      XY Navigation: <br>(0-199x and 0-199y)<br>
+      <label id="xtilelbl" for="xtile" style="display:inline">X:</label><input style="display:inline" type="number" id="xtile" name="xtile" min="0" max="199">
+      <label id="ytilelbl" for="ytile" style="display:inline">Y:</label><input style="display:inline" type="number" id="ytile" name="ytile" min="0" max="199"><br>
+      <label for="go_xy" style="display:inline">Go:</label><input type="button" id="go_xy" name="go_xy">
+      <label for="go_xyr" style="display:inline">Dismiss:</label><input type="button" id="go_xyr" name="go_xyr"><br>
+    </form>
+    <form id="townForm" style="display:none; position: absolute;top: 4500px;left: 4100px;width: 200px;height: 100px;border: 2px solid #0000FF;z-index: 5;;background-color:white">
+      Town Navigation: <br>Town Name (exact)<br>
+      <label id="townlbl" for="go_town" style="display:inline">Town:</label><input style="display:inline" id="town" name="town"><br>
+      <label for="go_town" style="display:inline">Go:</label><input type="button" id="go_town" name="go_town">
+      <label for="go_townr" style="display:inline">Dismiss:</label><input type="button" id="go_townr" name="go_townr"><br>
+    </form>
+    <form id="eraDisplay" style="display:none; position:absolute;top:4500px;left:3600px;width:200px;height:100px;border:2px solid #0000FF;z-index:5;background-color:orange">
+      Era:<br>
+      <label for="show_parch" style="display:inline">Post-Transit:</label><input type="button" id="show_parch" name="show_parch"><br>
+      <label for="show_sea" style="display:inline">Pre-Transit:</label><input type="button" id="show_sea" name="show_sea"><br>
+      <label for="era_displayr" style="display:inline">Dismiss:</label><input type="button" id="era_displayr" name="era_displayr"><br>
+    </form>
+    <div id="tileHistories" class="tooltip" style="display:none;position:absolute;top:0px;left:0px;width:200px;height:50px;border:2px solid #0000FF;z-index:5;background-color:orange">
+      Hover over me to see History
+      <span id="tileHistory" class="tooltiptext">History</span>
+      <br>
+      <label for="tileHistoriesr" style="display:inline">Dismiss:</label><input type="button" id="tileHistoriesr" name="tileHistoriesr">
+    </div>
+    <div id="RoughDryTiles" class="tooltip" style="display:none; position:absolute;top:0px;left:0px;width:220px;height:70px;border:2px solid #0000FF;z-index:5;background-color:orange">
+      Hover over me to see Terrain Difficulty
+      <span id="RoughDryTile" class="tooltiptext">Difficulty</span>
+      <br>
+      <label for="RoughDryTilesr" style="display:inline">Dismiss:</label><input type="button" id="RoughDryTilesr" name="RoughDryTilesr">
+    </div>
+    <script>
+      var show_roughr =document.getElementById("RoughDryTilesr")
+      show_roughr.onclick=function(e){document.getElementById("RoughDryTiles").style.display="none";}
+      var show_historyr =document.getElementById("tileHistoriesr")
+      show_historyr.onclick=function(e){document.getElementById("tileHistories").style.display="none";}
+      var show_parch =document.getElementById("show_parch")
+      show_parch.onclick=function(e){
+        HZM.currentDisplay=0;
+        console.log("" + HZM.currentMaxXpx +","+ HZM.currentRowSize+","+ HZM.currentMinXtile+","+ HZM.currentMinYtile )
+        HZM.adjustArea( HZM.currentMaxXpx, HZM.currentRowSize, HZM.currentMinXtile, HZM.currentMinYtile );
+        HZM.showArea()
+      };
+      var show_sea =document.getElementById("show_sea")
+      show_sea.onclick=function(e){
+        HZM.currentDisplay=1;
+        HZM.adjustArea( HZM.currentMaxXpx, HZM.currentRowSize, HZM.currentMinXtile, HZM.currentMinYtile ); 
+        HZM.showArea()
+      };
+      var era_displayr =document.getElementById("era_displayr")
+      era_displayr.onclick=function(e){document.getElementById("eraDisplay").style.display="none";}
+
+      var go_town =document.getElementById("go_town")
+      go_town.onclick=function(e){
+        tname=document.getElementById("town").value
+        tname=tname.toUpperCase().trim()
+        for ( p in tiles )
+        {
+          if ( (tiles[p].tname))
+          { 
+            if ((tiles[p].tname).toUpperCase().trim() == tname )
+            {
+              xt=tiles[p].xpos
+              yt=tiles[p].ypos
+              var pxs = HZM.currentMaxXpx
+              var rs = HZM.currentRowSize
+              var lft = Math.max(xt - (HZM.currentRowSize/2),0)
+              var tp = Math.max(yt - (HZM.currentColSize/2),0)
+              HZM.adjustArea( pxs, rs, lft, tp ); 
+              HZM.showArea()
+              HZM.scrollToXY(xt,yt);
+              tform=document.getElementById("townForm")
+              tform.style.top=HZM.currentTileSize*(yt-HZM.currentMinYtile)+"px"
+              tform.style.left=HZM.currentTileSize*(xt-HZM.currentMinXtile)+"px"
+              break;
+            }
+          }
+        }
+      }
+      var go_townr =document.getElementById("go_townr")
+      go_townr.onclick=function(e){townForm.style.display="none";}
+      var go_xyr =document.getElementById("go_xyr")
+      go_xyr.onclick=function(e){xyForm.style.display="none";}
+      var go_xy =document.getElementById("go_xy")
+      go_xy.onclick=function(e){
+        xt=document.getElementById("xtile").value;
+        yt=document.getElementById("ytile").value
+        //console.log("go_xy 1xt:"+ xt+" 1yt:"+yt); 
+        if (xt>=0 && xt<=199 && yt>=0 && yt<=199) 
+        {
+          var pxs = HZM.currentMaxXpx
+          var rs = HZM.currentRowSize
+          //console.log("go_xy HZM.currentRowSize="+HZM.currentRowSize)
+          var lft = Math.max(xt - (HZM.currentRowSize/2),0)
+          var tp = Math.max(yt - (HZM.currentColSize/2),0)
+          HZM.adjustArea( pxs, rs, lft, tp ); 
+          HZM.showArea()
+          HZM.scrollToXY(xt,yt);
+          xyform=document.getElementById("xyForm")
+          xyform.style.top=HZM.currentTileSize*(yt-HZM.currentMinYtile)+"px"
+          xyform.style.left=HZM.currentTileSize*(xt-HZM.currentMinXtile)+"px"
+          //console.log(xyform.style.left +"," + xyform.style.top)
+        } else { alert("Bad input"); }
+      };
+      var auxEls={
+        firstForm:
+        {
+          parentid:"body",
+          id:"firstform",
+          tag:"form",
+          style:"display:none;position:absolute;top:250px;left:250px;width:250px;height:125px;border:2px solid #0000FF;z-index:5;background-color:orange",
+          styles:[], // no individual style elements needed here, but if used the format would be an array of key:value, key:value, etc
+          attribs:[], // no attribs but if there are any it would be an array of key value pairs
+          innerHTML:"Adjust Display Area<br>",
+          childs:["lblff1","inputPixelArea","pff1","lblff2","inputTileArea","pff2","cvLeftTopLbl","cvLeftFf1","cvTopFf1","pff3","mapAreaBttn","firstformr"]
+        },
+        lblff1:
+        {
+          parentid:"firstform",
+          id:"lblCanvasPixelSize",
+          tag:"label",
+          attribs:[["for","canvasPixelSize"]],
+          style:"display:inline",
+          innerHTML:"Pixels", 
+          childs:[]
+        },
+        inputPixelArea:
+        {
+          parentid:"firstform",
+          id:"canvasPixelSize",
+          tag:"input",
+          attribs:[["type","number"],["name","canvasPixelSize"],["min","1000"],["max","10000"]],
+          style:"display:inline",
+          childs:[]
+        },
+        pff1:{
+          parentid:"firstform",
+          id:"pff1",
+          tag:"br",
+          childs:[]
+        },
+        lblff2:
+        {
+          parentid:"firstform",
+          id:"lblCanvasTileSize",
+          tag:"label",
+          attribs:[["for","canvasTileSize"]],
+          style:"display:inline",
+          innerHTML:"Tiles",
+          childs:[]
+        },
+        inputTileArea:
+        {
+          parentid:"firstform",
+          id:"canvasTileSize",
+          tag:"input",
+          attribs:[["type","number"],["name","canvasTileSize"],["min","10"],["max","200"]],
+          style:"display:inline",
+          childs:[]
+        },
+        pff2:{
+          parentid:"firstform",
+          id:"pff2",
+          tag:"br",
+          childs:[]
+        },
+        cvLeftTopLbl:
+        {
+          parentid:"firstform",
+          id:"cvLeftTopLbl",
+          tag:"label",
+          attribs:[["for","cvLeftFf1"]],
+          style:"display:inline",
+          innerHTML:"Left Top (X/Y)",
+          childs:[]
+        },
+        cvLeftFf1: {
+          parentid:"firstform",
+          id:"cvLeftFf1",
+          tag:"input",
+          attribs:[["type","number"],["name","cvLeftFf1"],["min","0"],["max","190"]],
+          style:"display:inline",
+          childs:[]
+        },
+        cvTopFf1:{
+          parentid:"firstform",
+          id:"cvTopFf1",
+          tag:"input",
+          attribs:[["type","number"],["name","cvTopFf1"],["min","0"],["max","190"]],
+          style:"display:inline",
+          childs:[]
+        },
+        pff3:{
+          parentid:"firstform",
+          id:"pff3",
+          tag:"br",
+          childs:[]
+        },
+        mapAreaBttn:{
+          parentid:"firstform",
+          id:"mapAreaBttn",
+          tag:"input",
+          style:"display:inline",
+          attribs:[["type","button"],["value","show map area"]],
+          childs:[]
+        }, //<input type="button" style="display:inline" id="prevInfo" value="<">
+        firstformr:{
+          parentid:"firstform",
+          id:"firstformr",
+          tag:"input",
+          style:"display:inline",
+          attribs:[["type","button"],["value","Dismiss"]],
+          childs:[]
+        },
+        placingForm:
+        {
+          parentid:"body",
+          id:"placingForm",
+          tag:"form",
+          style:"display:none;position:absolute;top:150px;left:150px;width:250px;height:125px;border:2px solid #0000FF;z-index:5;background-color:blue",
+          styles:[], // no individual style elements needed here, but if used the format would be an array of key:value, key:value, etc
+          attribs:[], // no attribs but if there are any it would be an array of key value pairs
+          childs:[]
+        },
+        
+        other:{}
+      }
+      /*var HZM = {
+        absMaximumXpx:1000,
+        other:0
+      }*/
+      var maxCZ = 0;
+      function createAuxElements(cName) // an array
+      {
+        auxEl = auxEls[cName[0]]
+        if ( !auxEl ) { alert ("no defined object to build aux el named:" + cName[0] ); return }
+        if (document.getElementById(auxEl.id)) // return;, // original code preventd recreating the Element 
+        {
+          alert( auxEl.id + " exists")
+          c = document.getElementById(auxEl.id)
+          c.parentNode.removeChild(c)
+          alert( auxEl.id + " removed to be recreated")
+        }
+        elAux = document.createElement(auxEl.tag);
+        elAux.id=auxEl.id;
+        elAux.style=auxEl.style;
+        if ( auxEl.styles && auxEl.styles.length > 0 )
+        {
+          //console.log("id:"+auxEl.id)
+          for( var c = 0; c < auxEl.styles.length; c++)
+          {
+            //console.log("id:"+auxEl.id + elAux.style[auxEl.styles[c][0]] +"=" + elAux.style[auxEl.styles[c][1]])
+            elAux.style[auxEl.styles[c][0]]=auxEl.styles[c][1]
+          }
+        }
+        if (  auxEl.attribs && auxEl.attribs.length > 0 )
+        {
+          for( var c = 0; c < auxEl.attribs.length; c++)
+          {
+            //console.log("id:"+auxEl.id + "," + auxEl.attribs[c][0] +"=" + auxEl.attribs[c][1])
+            elAux[auxEl.attribs[c][0]]=auxEl.attribs[c][1]
+          }
+        }
+        if (auxEl.innerHTML){elAux.innerHTML=auxEl.innerHTML}
+        //console.log("id=:" + auxEl.id + "p="+auxEl.parentid)
+        p=document.getElementById(auxEl.parentid);
+        p.appendChild(elAux)
+        if ( auxEl.childs.length > 0 )
+        {
+          for( var c = 0; c < auxEl.childs.length; c++)
+          {
+            cName.push(auxEl.childs[c])
+          }
+        }
+        cName.shift()
+        return cName
+        //cnn=p.childNodes.length;
+        //p.insertBefore(elAux,p.childNodes[0])
+      }
+      function createMainCanvases(cName, z)
+      {
+        if (document.getElementById(cName)) // return;, // original code preventd from recreating the canvas, now we need to allow for drawing at different sizes
+        {
+          c = document.getElementById(cName)
+          c.parentNode.removeChild(c)
+        }
+        if (z > maxCZ) maxCZ = z
+        cv = document.createElement("canvas");
+        //cv.globalAlpha=0.2
+        cv.id=cName;
+        cv.style.left="0px"
+        //cv.style.top=canvasTop+"px"
+        cv.width=HZM.absMaximumXpx //HZM.currentMaxXpx
+        cv.height=HZM.absMaximumXpx //HZM.currentMaxYpx
+        cv.style.border="1px solid #000000";
+        cv.style.position="absolute";
+        cv.display="block";
+        cv.style.zIndex = z
+        body=document.getElementById("body");
+        body.insertBefore(cv,body.childNodes[0])
+      }
+      window.onload = function()
+      {
+        createMainCanvases("main", 1)
+        createMainCanvases("ctext", 2)
+        createMainCanvases("tfea", 3)
+        cName=["firstForm","placingForm"]
+        while ( cName.length > 0 ) { cName = createAuxElements(cName); }
+        //document.getElementById("firstform").scrollIntoView();
+        cvas = document.getElementById("tfea")
+        cvas.oncontextmenu=function(e)
+        {
+          e.preventDefault();
+          if (e.ctrlKey ) // smaller
+          {
+            HZM.currentMaxXpx=HZM.currentMaxXpx * .9 > HZM.absMinimumXpx ? HZM.currentMaxXpx * .9 :HZM.absMinimumXpx
+            HZM.currentMaxYpx=HZM.currentMaxYpx * .9 > HZM.absMinimumYpx ? HZM.currentMaxYpx * .9 : HZM.absMinimumYpx
+            HZM.currentTileSize=HZM.currentMaxXpx/HZM.currentRowSize
+            HZM.adjustArea( HZM.currentMaxXpx, HZM.currentRowSize, HZM.currentMinXtile, HZM.currentMinYtile );
+            HZM.showArea()
+            //console.log("smaller pixels:" + HZM.currentMaxXpx)
+          }
+          else if (e.altKey ) // bigger
+          {
+            HZM.currentMaxXpx=HZM.currentMaxXpx * 1.1 < HZM.absMaximumXpx ? HZM.currentMaxXpx * 1.1 : HZM.absMaximumXpx
+            HZM.currentMaxYpx=HZM.currentMaxYpx * 1.1 < HZM.absMaximumYpx ? HZM.currentMaxYpx * 1.1 : HZM.absMaximumYpx
+            HZM.currentTileSize=HZM.currentMaxXpx/HZM.currentRowSize
+            HZM.adjustArea( HZM.currentMaxXpx, HZM.currentRowSize, HZM.currentMinXtile, HZM.currentMinYtile );
+            HZM.showArea()
+            //console.log("bigger pixels:" + HZM.currentMaxXpx)
+          }
+          else{
+            firstForm = document.getElementById("firstform")
+            firstForm.style.display="inline";
+            firstForm.style.top=e.offsetY+"px"; 
+            firstForm.style.left=e.offsetX+"px";
+          }
+        };
+        cvas.onclick=function(e)
+        {
+          if ( e.ctrlKey && e.shiftKey)
+          {
+            rdform = document.getElementById("RoughDryTiles")
+            rdform.style.top=e.offsetY+"px"; 
+            rdform.style.left=e.offsetX+"px";
+            rdform.style.display="inline"
+            x=Math.floor((HZM.currentMinXtile + (e.offsetX / HZM.currentTileSize)))
+            y = Math.floor((HZM.currentMinYtile + (e.offsetY/HZM.currentTileSize) ))
+            ky = HZM.tileKeyFromXY(x,y)
+            var story = ""
+            if (tiles[ky].fertility) 
+            {
+              story += "X:" + x + "Y:" + y + "," + tiles[ky].fertility
+              f = "a"+tiles[ky].fertility
+              story += " " + HZM.bleakness[f].d + " " + HZM.bleakness[f].e
+            }
+            nw = HZM.tileKeyFromXY(x-1,y-1);
+            if ( tiles[nw] ) {diff = Math.abs((tiles[nw].lvl + 1) - (tiles[ky].lvl+1)); story += "<br>NW:" + diff } else { story += "<br>NW:000"}
+            n = HZM.tileKeyFromXY(x,y-1);
+            if ( tiles[n] ) { diff = Math.abs(tiles[n].lvl - tiles[ky].lvl); story += " N:" + diff } else { story += " N:000"}
+            ne = HZM.tileKeyFromXY(x+1,y-1);
+            if ( tiles[ne] ) { diff = Math.abs(tiles[ne].lvl - tiles[ky].lvl); story += " NE:" + diff } else { story += " NE:000"}
+            w = HZM.tileKeyFromXY(x-1,y)
+            if ( tiles[w] ) { diff = Math.abs(tiles[w].lvl - tiles[ky].lvl); story += "<br>W:" + diff } else { story += "<br>W:000"}
+            e = HZM.tileKeyFromXY(x+1,y)
+            if ( tiles[e] ) { diff = Math.abs(tiles[e].lvl - tiles[ky].lvl); story += " E:" + diff } else { story += " E:000"}
+            sw = HZM.tileKeyFromXY(x-1,y+1)
+            if ( tiles[sw] ) { diff = Math.abs(tiles[sw].lvl - tiles[ky].lvl); story += "<br>SW:" + diff } else { story += "<br>SW:000"}
+            s = HZM.tileKeyFromXY(x,y+1)
+            if ( tiles[s] ) { diff = Math.abs(tiles[s].lvl - tiles[ky].lvl); story += " S:" + diff } else { story += " S:000"}
+            se = HZM.tileKeyFromXY(x+1,y+1)
+            if ( tiles[se] ) { diff = Math.abs(tiles[se].lvl - tiles[ky].lvl); story += " SE:" + diff } else { story += " SE:000"}
+            document.getElementById("RoughDryTile").innerHTML=story
+          }
+          else if (e.ctrlKey)
+          {
+            tform = document.getElementById("townForm")
+            tform.style.display="inline";
+            tform.style.top=e.offsetY+"px"; 
+            tform.style.left=e.offsetX+"px";
+          }
+          else if (e.shiftKey)
+          {
+            eform = document.getElementById("eraDisplay")
+            eform.style.display="inline";
+            eform.style.top=e.offsetY+"px"; 
+            eform.style.left=e.offsetX+"px";
+          }
+          else if (e.altKey)
+          {
+            hform = document.getElementById("tileHistories")
+            hform.style.top=e.offsetY+"px"; 
+            hform.style.left=e.offsetX+"px";
+            hform.style.display="inline"
+            x=Math.floor((HZM.currentMinXtile + (e.offsetX / HZM.currentTileSize)))
+            y = Math.floor((HZM.currentMinYtile + (e.offsetY/HZM.currentTileSize) ))
+            xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+            ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+            ky = "a" + xkey + ykey
+            var story = ""
+            if (tiles[ky].tname) story += "<b>"+tiles[ky].tname+"</b><br>"
+            if (tiles[ky].tstory) story += tiles[ky].tstory+"<br>"
+            if (tiles[ky].tale) story += tiles[ky].tale+"<br>"
+            story = story.length == 0 ? "No story" : story
+            document.getElementById("tileHistory").innerHTML=story
+          }
+          else 
+          {
+            xyform = document.getElementById("xyForm")
+            xyform.style.display="inline";
+            xyform.style.top=e.offsetY+"px"; 
+            xyform.style.left=e.offsetX+"px";
+          }
+        };
+        b=document.getElementById("mapAreaBttn")
+        b.onclick=function(e){ 
+          var canvasPixelSize = Number.parseInt(document.getElementById("canvasPixelSize").value)
+          var canvasTileSize = Number.parseInt(document.getElementById("canvasTileSize").value)
+          var cvLeftFf1 = Number.parseInt(document.getElementById("cvLeftFf1").value)
+          var cvTopFf1 = Number.parseInt(document.getElementById("cvTopFf1").value)
+          HZM.adjustArea( canvasPixelSize, canvasTileSize, cvLeftFf1, cvTopFf1 ); 
+          HZM.showArea()
+        }
+        bd = document.getElementById("firstformr")
+        bd.onclick=function(e){ document.getElementById("firstform").style.display="none" };
+        HZM.initMap()
+        HZM.showArea()
+      }
+    </script>
+  </body>
+</html>

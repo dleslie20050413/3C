@@ -1,0 +1,1400 @@
+/* somewhat abstracted from the base canvas objects but not actually independent. Canvas properties and methods are used
+*/
+HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because there is only one map //Map is already a Javascript defined object
+  // define the biggest we will allow the map canvas to be in pixels
+  // and the biggest area we will allow it to depict in tiles
+  absMaximumXpx:10000,
+  absMaximumYpx:10000,
+  absMinimumXpx:1000,
+  absMinimumYpx:1000,
+  // these are absolute only because this defines the paramaters of the habitable zone
+  // if the tiles are changed to describe a size that is something othervthan 5 miles then the numbers could change
+  absMaximumXtile:200, // 200-1=199
+  absMaximumYtile:200, // 200-1=199
+  absMinimumXtile:0,
+  absMinimumYtile:0,
+  //tileSize:50,// in px 
+  // define the current size of the map canvas in pixels
+  // and the current area it depicts in tiles
+  currentMaxXpx:this.absMaximumXpx,
+  currentMaxYpx:this.absMaximumYpx,
+  currentMinXpx:null,
+  currentMinYpx:null,
+  currentMaxXtile:null,
+  currentMaxYtile:null,
+  currentMinXtile:null,
+  currentMinYtile:null,
+  currentRowSize:null,
+  currentColSize:null,
+  currentTileSize:null,
+  currentDisplay:0,  // 0 is post transit, 1 is pre transit, using numeric instead of boolean allows other options in future
+  initMap: function()
+  {
+    this.currentMaxXpx=this.absMaximumXpx
+    this.currentMaxYpx=this.absMaximumYpx
+    this.currentMinXpx=this.absMinimumXpx
+    this.currentMinYpx=this.absMinimumYpx
+    this.currentMaxXtile=this.absMaximumXtile
+    this.currentMaxYtile=this.absMaximumYtile
+    this.currentMinXtile=this.absMinimumXtile
+    this.currentMinYtile=this.absMinimumYtile
+    this.currentRowSize=this.absMaximumXtile-this.absMinimumXtile             // calculated
+    this.currentColSize=this.absMaximumYtile-this.absMinimumYtile            // calculated
+    this.currentTileSize=this.currentMaxXpx/this.currentRowSize           // calculated
+  },
+  reset: function ()
+  {
+    this.currentMaxXpx=this.absMaximumXpx
+    this.currentMaxYpx=this.absMaximumYpx
+    this.currentMinXpx=this.absMinimumXpx
+    this.currentMinYpx=this.absMinimumYpx
+    this.currentMaxXtile=this.absMaximumXtile
+    this.currentMaxYtile=this.absMaximumYtile
+    this.currentMinXtile=this.absMinimumXtile
+    this.currentMinYtile=this.absMinimumYtile
+    this.currentRowSize=this.absMaximumXtile-this.currentMinXtile
+    this.currentColSize=this.currentMaxYtile-this.currentMinYtile
+    this.currentTileSize=this.absMaximumXpx/this.currentRowSize  
+  },  
+  adjustArea: function ( pxil, rsize, lft, tp)
+  { // adjust parameters for displaying map portions
+    //console.log("adjustArea pxil:" +  pxil + ",rsize=" + rsize + ",lft=" + lft +", tp=" + tp)
+    mc = document.getElementById("main")
+    mc2 = document.getElementById("ctext")
+    mc3 = document.getElementById("tfea")
+    ctx= mc.getContext("2d");
+    ctx2=mc2.getContext("2d");
+    ctx3=mc3.getContext("2d");
+    ctx.clearRect(0,0,this.currentMaxXpx,this.currentMaxYpx)
+    ctx2.clearRect(0,0,this.currentMaxXpx,this.currentMaxYpx)
+    ctx3.clearRect(0,0,this.currentMaxXpx,this.currentMaxYpx)
+   
+    
+    this.currentColSize = (tp + rsize) <= this.absMaximumYtile ? rsize : this.absMaximumYtile - tp 
+    this.currentRowSize = (lft + rsize) <= this.absMaximumXtile ? rsize : this.absMaximumXtile - lft
+    this.currentMinXtile=lft
+    this.currentMinYtile=tp
+    this.currentMaxXtile=this.currentMinXtile+this.currentRowSize
+    this.currentMaxYtile=this.currentMinYtile+this.currentColSize
+    this.currentTileSize=Math.min(Math.ceil(pxil/this.currentRowSize),Math.ceil(pxil/this.currentColSize))
+    
+    this.currentMaxXpx=(this.currentMaxXtile - this.currentMinXtile)*this.currentTileSize
+    this.currentMaxYpx=(this.currentMaxYtile - this.currentMinYtile)*this.currentTileSize
+    this.currentMinXpx=0
+    this.currentMinYpx=0
+    
+        
+        mc.width=this.currentMaxXpx //HZM.currentMaxXpx
+        mc.height=this.currentMaxYpx   
+        mc2.width=this.currentMaxXpx//HZM.currentMaxXpx
+        mc2.height=this.currentMaxYpx   
+        mc3.width=this.currentMaxXpx //HZM.currentMaxXpx
+        mc3.height=this.currentMaxYpx 
+    
+  },
+  showArea: function() // for now ctx is only for main canvas
+  {
+    //console.log("showArea")
+    ctx=document.getElementById("main").getContext("2d")
+    for( var x=HZM.currentMinXtile; x<HZM.currentMaxXtile; x++)
+    {
+      for( var y=HZM.currentMinYtile; y<HZM.currentMaxYtile; y++)
+      {
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        key = "a" + xkey + ykey 
+        if ( tiles[key]) {
+          xp=tiles[key].xpos
+          yp=tiles[key].ypos
+          t= new Tile(xp,yp)
+          t.drawSelf(ctx)
+        }  else {console.log( "no tile with key:" + key) }
+      }
+    }
+    for ( p in Features ) { /*console.log(p);*/ Features[p](tiles)}
+    shoreObjects.drawShoresRivers()
+    HZM.scrollToXY(HZM.currentMinXtile+Math.floor((HZM.currentRowSize/2)), HZM.currentMinYtile+(Math.floor(HZM.currentColSize/2)))
+    document.getElementById("firstform").style.display="none"
+  },
+  setTileArea: function( minX, minY, maxX, maxY)
+  {
+    this.currentMaxXtile=maxX
+    this.currentMaxYtile=maxY
+    this.currentMinXtile=minX
+    this.currentMinYtile=minY
+    this.currentRowSize=maxX-minX
+    this.currentColSize=maxY-minY
+    this.currentTileSize=this.currentMaxXpx/this.currentRowSize
+  },
+  setPxArea: function( minX, minY, maxX, maxY)
+  {
+    this.currentMaxXpx=maxX
+    this.currentMaxYpx=maxY
+    this.currentMinXpx=minX
+    this.currentMinYpx=minY
+    this.currentTileSize=this.currentMaxXpx/this.currentRowSize
+  },
+  getViewportSize: function()
+  {
+    if (window.innerWidth != null) return {w: window.innerWidth, h:window.innerHeight }
+    return null;
+  },
+  scrollToXY: function (vx, vy){
+    //document.getElementById("placingForm").scrollIntoView()
+    //console.log("scrollToXY:" +vx + "," + vy)
+    // ================ it might be required that the screen be redrawn; start here ================
+    tmpx = vx
+    tmpy = vy
+    scTo=document.getElementById("placingForm")
+    scTo.style.display="inline";
+    tmp=((tmpy-this.currentMinYtile)*this.currentTileSize)
+    scTo.style.top=tmp+"px"
+    tmp=((tmpx-this.currentMinXtile)*this.currentTileSize)
+    scTo.style.left=tmp+"px"
+    //console.log("x"+tmpx+", y="+tmpy+" tileSize="+this.currentTileSize+", top=" + scTo.style.top +", left=" + scTo.style.left)
+    scTo.scrollIntoView()
+    scTo.style.display="none";
+  },
+  tileKeyFromXY: function(x,y)
+  {
+    var xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+    var ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+    var ky =  "a" + xkey + ykey
+    return ky
+  },
+  preTransitWaters:{
+    land:"#A52A2A", // brown
+    sea:"#0000FF", // blue
+    shore:"#2E8B57" // seagreen
+  },
+  bleakness:{
+    a10:{bgcc:"#FFF000", lupCode:"#FF0000", ldownCode:"#DDA0DD",sz:0,d:"most extremely dry",e:-4},
+    a20:{bgcc:"#FAFAD2", lupCode:"#FF4500", ldownCode:"#DA70D6",sz:0,d:"extremely dry",e:-3},
+    a40:{bgcc:"#FFD700", lupCode:"#FF1493", ldownCode:"#9400D3",sz:0,d:"very dry",e:-2},
+    a80:{bgcc:"#F0E68C", lupCode:"#8B0000", ldownCode:"#9932CC",sz:0,d:"dry",e:-1},
+    a160:{bgcc:"#DAA520", lupCode:"#DC143C", ldownCode:"#8B008B",sz:0,d:"almost useful",e:0},
+    a320:{bgcc:"#7FFFD4", lupCode:"#FA8072", ldownCode:"#708090",sz:1,d:"useful",e:1},
+    a640:{bgcc:"#90EE90", lupCode:"#B22222", ldownCode:"#2F4F4F",sz:2,d:"very useful",e:2},
+    a1280:{bgcc:"#66CDAA", lupCode:"#D2691E", ldownCode:"#8B008B",sz:3,d:"almost fertile",e:3},
+    a2560:{bgcc:"#00FA9A", lupCode:"#FF69B4", ldownCode:"#696969",sz:4,d:"fertile",e:4},
+    a5120:{bgcc:"#00FF7F", lupCode:"#FF8C00", ldownCode:"#483D8B",sz:5,d:"very fertile",e:5},
+    a10240:{bgcc:"#9ACD32", lupCode:"#A52A2A", ldownCode:"#8A2BE2",sz:6,d:"verdant",e:6},
+    a20480:{bgcc:"#008000", lupCode:"#FFA500", ldownCode:"#0000CD",sz:7,d:"lush",e:7},
+    a40960:{bgcc:"#32CD32", lupCode:"#ff0000", ldownCode:"#800080",sz:8,d:"luxurious",e:8},
+    a81920:{bgcc:"#00FF00", lupCode:"#E9967A", ldownCode:"#1E90FF",sz:9,d:"beyond luxury",e:9},
+    a163840:{bgcc:"#98FB98", lupCode:"#FF7F50", ldownCode:"#556B2F",sz:10,d:"almost paradise", e:10}
+  },
+  sColor:{
+    gnoll:["blue","red",0,1.0,false], 
+    horde:["aqua","blue",0,1.0,true], 
+    human:["white","red",1.0,0,false], 
+    elf:["lime","green",1.0,0,true], 
+    dwarf:["lightgray","black",0,1.5,false], 
+    u:["lightcyan","lightyellow",0,1.5,true],
+    uplift:["yellow","teal",0,2.0,false],
+    uplift_amphibian:["white","black",0,2.0,true],
+    uplift_mollusk:["DarkOrchid","black",0,2.0,true],
+    uplift_avian:["skyblue","black",0,2.0,true], 
+    uplift_sl:["lightgreen","lightyellow",0,2.0,true],  
+    downlift:["white","midnightblue",0,2.0,true]
+  },
+  S: function(ctx,xp,yp,tilesize)
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path for arrow with base at south and apex at center
+    ctx.moveTo(xp+Math.floor(h*(4/10)),yp+h); // 440,50
+    ctx.lineTo(xp+Math.floor(h*(6/10)),yp+h);// 450, 50
+    ctx.lineTo(xp+Math.floor(w/2),yp+Math.floor(h/2));// 445, 25
+    ctx.closePath(); //close path for arrow with base at south and apex at center
+    ctx.stroke(); //draw arrow with base at south and apex at center
+  },
+  s: function(ctx,xp,yp,tilesize) // vale south
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path of arrow with base in center and point to the south
+    ctx.moveTo(xp+Math.floor(w*(20/50)),yp+Math.floor(h*(25/50)));// 435,445: 445, 470
+    ctx.lineTo(xp+Math.floor(w*(30/50)),yp+Math.floor(h*(25/50)));// 455,445
+    ctx.lineTo(xp+Math.floor(w*(25/50)),yp+h);// 445, 470
+    ctx.closePath();// finish path of arrow with base in center and point to the south
+    ctx.stroke();// draw arrow with base in center and point to the south
+  },
+  N: function(ctx,xp,yp,tilesize) // peak north
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path base north, apex center
+    ctx.moveTo(xp+Math.floor(h*(4/10)),yp);
+    ctx.lineTo(xp+Math.floor(h*(6/10)),yp);
+    ctx.lineTo(xp+Math.floor(w/2),yp+Math.floor(h/2));
+    ctx.closePath();// finish path base north, apex center
+    ctx.stroke();// stroke path base north, apex center    
+  },
+  n: function(ctx,xp,yp,tilesize) // vale north
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path of arrow with base in center and point to the north
+    ctx.moveTo(xp+Math.floor(w*(20/50)),yp+Math.floor(h*(25/50)));// 
+    ctx.lineTo(xp+Math.floor(w*(30/50)),yp+Math.floor(h*(25/50)));//
+    ctx.lineTo(xp+Math.floor(w*(25/50)),yp);// 445, 470
+    ctx.closePath();// finish path of arrow with base in center and point to the north
+    ctx.stroke();// draw arrow with base in center and point to the north
+  }, 
+  E: function(ctx,xp,yp,tilesize) // peak east
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path for arrow with base at east and apex at center
+    ctx.moveTo(xp+w,yp+Math.floor(h*(2/5))); // 470,20
+    ctx.lineTo(xp+w,yp+Math.floor(h*(3/5)));// 470 30
+    ctx.lineTo(xp+Math.floor(w/2),yp+Math.floor(h/2));// 445, 25
+    ctx.closePath(); //close path for arrow with base at east and apex at center
+    ctx.stroke(); //draw arrow with base at east and apex at center          
+  },
+  e: function(ctx,xp,yp,tilesize) // vale east
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path of arrow with base in center and point to the east
+    ctx.moveTo(xp+Math.floor(w*(25/50)),yp+Math.floor(h*(20/50)));// 
+    ctx.lineTo(xp+Math.floor(w*(25/50)),yp+Math.floor(h*(30/50)));//
+    ctx.lineTo(xp+w,(yp+Math.floor(h*(25/50))));// 445, 470
+    ctx.closePath();// finish path of arrow with base in center and point to the east
+    ctx.stroke();// draw arrow with base in center and point to the east
+  },
+
+  W: function(ctx,xp,yp,tilesize)// peak west
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path for arrow with base at west and apex at center
+    ctx.moveTo(xp,yp+Math.floor(h*(2/5))); // 420,20
+    ctx.lineTo(xp,yp+Math.floor(h*(3/5)));// 420 30
+    ctx.lineTo(xp+Math.floor(w/2),yp+Math.floor(h/2));// 445, 25
+    ctx.closePath(); //close path for arrow with base at west and apex at center
+    ctx.stroke(); //draw arrow with base at west and apex at cente
+  },
+  
+  w: function(ctx,xp,yp,tilesize) // vale west
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path of arrow with base in center and point to the west
+    ctx.moveTo(xp+Math.floor(w*(25/50)),yp+Math.floor(h*(20/50)));// 
+    ctx.lineTo(xp+Math.floor(w*(25/50)),yp+Math.floor(h*(30/50)));//
+    ctx.lineTo(xp,yp+Math.floor(h*(25/50)));// 445, 470
+    ctx.closePath();// finish path of arrow with base in center and point to the west
+    ctx.stroke();// draw arrow with base in center and point to the west
+  },
+  A: function(ctx,xp,yp,tilesize) // peak northwest
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path for arrow with base at northwest and apex at center
+    ctx.moveTo(xp+Math.floor(w*(1/10)),yp); // 420,20
+    ctx.lineTo(xp,yp+Math.floor(h*(1/10)));// 420 30
+    ctx.lineTo(xp+Math.floor(w/2),yp+Math.floor(h/2));// 445, 25
+    ctx.closePath(); //close path for arrow with base at northwest and apex at center
+    ctx.stroke(); //draw arrow with base at northwest and apex at center
+  },
+  a: function(ctx,xp,yp,tilesize) // vale northwest
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path of arrow with base in center and point to the northwest
+    ctx.moveTo(xp+Math.floor(w*(25/50)),yp+Math.floor(h*(20/50)));
+    ctx.lineTo(xp+Math.floor(w*(20/50)),yp+Math.floor(h*(25/50)));
+    ctx.lineTo(xp,yp);//
+    ctx.closePath();// finish path of arrow with base in center and point to the northwest
+    ctx.stroke();// draw arrow with base in center and point to the northwest
+  },
+  B: function(ctx,xp,yp,tilesize) // peak northeast
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path for arrow with base at northeast and apex at center
+    ctx.moveTo(xp+Math.floor(w*(9/10)),yp); // 420,20
+    ctx.lineTo(xp+w,yp+Math.floor(h*(1/10)));// 420 30
+    ctx.lineTo(xp+Math.floor(w/2),yp+Math.floor(h/2));// 445, 25
+    ctx.closePath(); //close path for arrow with base at northeast and apex at center
+    ctx.stroke(); //draw arrow with base at northeast and apex at cente
+  },
+  b: function(ctx,xp,yp,tilesize) // vale northeast
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path of arrow with base in center and point to the northeast
+    ctx.moveTo(xp+Math.floor(w*(25/50)),yp+Math.floor(h*(20/50)));
+    ctx.lineTo(xp+Math.floor(w*(30/50)),yp+Math.floor(h*(25/50)));//
+    ctx.lineTo(xp+w,yp);
+    ctx.closePath();// finish path of arrow with base in center and point to the northeast
+    ctx.stroke();// draw arrow with base in center and point to the northeast
+  },
+  C: function(ctx,xp,yp,tilesize) // peak southeast
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path for arrow with base at southeast and apex at center
+    ctx.moveTo(xp+Math.floor(w*(9/10)),yp+h); // 420,20
+    ctx.lineTo(xp+w,yp+Math.floor(h*(9/10)));// 420 30
+    ctx.lineTo(xp+Math.floor(w/2),yp+Math.floor(h/2));// 445, 25
+    ctx.closePath(); //close path for arrow with base at southeast and apex at center
+    ctx.stroke(); //draw arrow with base at southeast and apex at center    
+  },
+  c: function(ctx,xp,yp,tilesize) // vale southeast
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path of arrow with base in center and point to the southeast
+    ctx.moveTo(xp+Math.floor(w*(30/50)),yp+Math.floor(h*(25/50)));// 
+    ctx.lineTo(xp+Math.floor(w*(25/50)),yp+Math.floor(h*(30/50)));//
+    ctx.lineTo(xp+w,yp+h);// 445, 470
+    ctx.closePath();// finish path of arrow with base in center and point to the southeast
+    ctx.stroke();// draw arrow with base in center and point to the southeast
+  },
+  D: function(ctx,xp,yp,tilesize) // peak southwest
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path for arrow with base at southwest and apex at center
+    ctx.moveTo(xp,yp+Math.floor(h*(9/10))); // 420,20
+    ctx.lineTo(xp+Math.floor(w*(1/10)),yp+h);// 420 30
+    ctx.lineTo(xp+Math.floor(w/2),yp+Math.floor(h/2));// 445, 25
+    ctx.closePath(); //close path for arrow with base at southwest and apex at center
+    ctx.stroke(); //draw arrow with base at southwest and apex at center
+  },
+  d: function(ctx,xp,yp,tilesize) // vale southwest
+  {
+    var w = tilesize
+    var h = tilesize
+    ctx.beginPath();// start path of arrow with base in center and point to the southwest
+    ctx.moveTo(xp+Math.floor(w*(25/50)),yp+Math.floor(h*(30/50)))
+    ctx.lineTo(xp+Math.floor(w*(20/50)),yp+Math.floor(h*(25/50)));//
+    ctx.lineTo(xp,yp+h);// 445, 470
+    ctx.closePath();// finish path of arrow with base in center and point to the southwest
+    ctx.stroke();// draw arrow with base in center and point to the southwes
+  },
+  
+  // other things
+  other:null
+}
+Features={
+  heartOfTheWorld: function(tiles)
+  {
+    //console.log("heartOfTheWorld")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    //104 to 131 y
+    //70 to 95 x
+    fx = document.getElementById("tfea").getContext("2d")
+    // record init values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+    for (let x = 70; x < 95; x++) {
+      for (let y=104; y<131; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey 
+        //console.log(ky)
+        if (tiles[ky].lvl<-2050)
+        {
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+    
+      let fontS = Math.floor(ts *0.8)
+      ctx.font="bold "+fontS+"px Arial";
+      ctx.fillStyle="black"
+      ctx.globalAlpha=.5
+      ctx.fillText( "Heart Of The World", (82-HZM.currentMinXtile )*ts, (117-HZM.currentMinYtile)*ts);  
+    
+    // restore init values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    //console.log(" end heartOfTheWorld")
+    //HZM.scrollToXY(82,117);
+  },
+  //=====================================================
+  enubadFan: function( tiles )
+  {
+    //console.log("Enubad Fan")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    // record init values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6"
+    fx.strokeStyle="black"
+    fx.lineWidth=5
+    
+    // fan starts at 30,57
+    // mid 68, 108: bottom 58, 117:  top 70, 98
+    //unlit 59.119
+    //xypos has to be adjusted when the map size is not the default.
+    // startX = 30-HZM.currentMinXtile
+      startX = 30-HZM.currentMinXtile
+      startY = 57-HZM.currentMinYtile
+        fx.beginPath()
+        fx.moveTo(startX*ts,startY*ts)
+        fx.lineTo((startX+2)*ts,(startY+9)*(ts))//+(ts*6/50)))
+        fx.lineTo((startX+6)*(ts),(startY+13)*(ts))//+(ts*16/50)))
+        fx.lineTo((startX+7)*ts,(startY+16)*(ts))//+(ts*16/50)))
+        fx.lineTo((startX+9)*ts,(startY+21)*(ts))//+(ts*14/50)))
+        fx.lineTo((startX+12)*ts,(startY+27)*(ts))//+(ts*16/50)))
+        fx.lineTo((startX+15)*ts,(startY+34)*(ts))//+(ts*16/50)))
+        fx.lineTo((startX+18)*ts,(startY+41)*(ts))//+(ts*16/50)))
+        fx.lineTo((startX+20)*ts,(startY+49)*(ts))//+(ts*15/50)))
+        fx.lineTo((startX+23)*ts,(startY+63)*ts)
+        fx.lineTo((startX+29)*ts,(startY+59)*(ts))//-(ts*9/50)))
+        fx.lineTo((startX+35)*ts,(startY+53)*(ts))
+        fx.lineTo((startX+40)*ts,(startY+43)*(ts))
+        fx.lineTo((startX+37)*ts,(startY+34)*(ts))//-(ts*12/50)))
+        fx.lineTo((startX+32)*ts,(startY+30)*(ts))//-(ts*11/50)))
+        fx.lineTo((startX+31)*ts,(startY+29)*(ts))//-(ts*10/50)))
+        fx.lineTo((startX+27)*ts,(startY+25)*(ts))//-(ts*9/50)))
+        fx.lineTo((startX+28)*ts,(startY+21)*(ts))//-(ts*8/50)))
+        fx.lineTo((startX+22)*ts,(startY+17)*(ts))//-(ts*7/50)))
+        fx.lineTo((startX+17)*ts,(startY+13)*(ts))//-(ts*6/50)))
+        fx.lineTo((startX+13)*ts,(startY+11)*(ts))//-(ts*5/50)))
+        fx.lineTo((startX+9)*ts,(startY+5)*(ts))//-(ts*4/50)))
+        fx.closePath()
+        fx.stroke()
+        fx.fill()
+    // 45, 83
+      fs=ts*1.5
+      ctx.font="bold "+fs+"px Arial";
+      ctx.fillStyle="black"
+      ctx.globalAlpha=.99
+      ctx.fillText( "Enubad Fan", (44-HZM.currentMinXtile)*ts, (83-HZM.currentMinYtile)*ts); 
+      ctx.strokeStyle="lime"
+      ctx.strokeText("Enubad Fan", (44-HZM.currentMinXtile)*ts, (83-HZM.currentMinYtile)*ts)
+    
+    // restore init values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    //console.log(" end enubadFan")
+    //HZM.scrollToXY(44,83);
+  },
+  //==================================================================
+  subspororoCanyon: function(tiles)
+  {
+    //console.log("Subsporo Canyon")
+    ts=HZM.currentTileSize
+    //console.log("Subsporo Canyon ts="+ts)
+    ctx=document.getElementById("main").getContext("2d")
+    //console.log("Subsporo Canyon ctx")
+    fx = document.getElementById("tfea").getContext("2d")
+    //console.log("Subsporo Canyon fx")
+    // record start values
+    startAlpha=fx.globalAlpha
+    //console.log("Subsporo Canyon sv")
+    fs=fx.fillStyle
+    startFont=ctx.font
+
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+    // start by listing some tiles that are start the Canyon
+    var xspotMin=30
+    var xspotMax=30
+    var yspot=177
+    var curlvl=-300
+    var newCurlvl=-300
+    //console.log("Subsporo Canyon lv")
+    // now fan to the north, choose any tiles that are equal or lower, stop when y reaches 155 or depth value < -2000
+    var keepgoing=true
+    var zzz=2000
+    do
+    {
+      zzz++
+      //console.log("do")
+      for ( x=xspotMin-2; x<xspotMax+2;x++)
+      {
+        //console.log("for")
+        if (x > 40) continue
+        if (x >= HZM.currentMaxXtile || yspot>= HZM.currentMaxYtile || x < HZM.currentMinXtile || yspot < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = yspot < 10 ? "00" + yspot : yspot < 100 ? "0" + yspot: yspot
+        ky = "a" + xkey + ykey 
+        //console.log("ky:"+ky+"keepgoing:"+keepgoing)
+        if (!tiles[ky]) { console.log(yy); keepgoing=false; break }
+        if (tiles[ky].lvl <= curlvl)
+        {
+          if (x<xspotMin) xspotMin=x
+          if (x>xspotMax) xspotMax=x
+          if (tiles[ky].lvl<curlvl) newCurlvl = tiles[ky].lvl
+          //console.log("new level:" + newCurlvl)
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(yspot-HZM.currentMinYtile)*ts,ts,ts)
+        }
+        //console.log("ky:"+ky+"keepgoing:"+keepgoing)
+      }
+      yspot--
+      curlvl=newCurlvl
+      if (curlvl<-2000) break
+      if (zzz>3000) keepgoing=false
+    } while (keepgoing)
+      // fix one anomoly
+    for ( x=29; x<32;x++)
+    {
+      yspot=173
+      fx.fillRect((x-HZM.currentMinXtile)*ts,(yspot-HZM.currentMinYtile)*ts,ts,ts)
+    }
+      let fontS = Math.floor(ts *0.8)
+      fx.font="bold "+fontS+"px Arial";
+      fx.fillStyle="black"
+      fx.globalAlpha=.6
+      fx.fillText( "Subsporo Canyon", (30-HZM.currentMinXtile)*ts, (165-HZM.currentMinYtile)*ts);  
+    
+    // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    //console.log("done with subspororoCanyon")
+    HZM.scrollToXY(32,160);
+    
+  },
+  //====================================================
+  stormWomb: function(tiles)
+  {
+    //console.log("Storm Womb")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+    //  105,63 to 132,83; if the depth is -1500 it's part of the feature
+    for (var x=105; x < 133; x++)
+    {
+      for ( var y = 63; y<84; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey 
+        if ( tiles[ky].lvl == -1500)
+        {
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+    let fontS = Math.floor(ts *0.8)
+    ctx.font="bold "+fontS+"px Arial";
+    ctx.fillStyle="black"
+    ctx.globalAlpha=.5
+    ctx.fillText( "Storm Womb", (116-HZM.currentMinXtile)*ts, (72-HZM.currentMinYtile)*ts);  
+    // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont 
+    HZM.scrollToXY(116-HZM.currentMinXtile,72-HZM.currentMinYtile);
+  },
+  //===========================================
+  northDeepness: function(tiles)
+  {
+    //console.log("North Deepness")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+    //  124,69 to 152,90; if the depth is -1800 it's part of the feature
+    for (var x=124; x < 153; x++)
+    {
+      for ( var y = 69; y<91; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey 
+        if ( tiles[ky].lvl == -1800)
+        {
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+    let fontS = Math.floor(ts *0.8)
+    ctx.font="bold "+fontS+"px Arial";
+    ctx.fillStyle="black"
+    ctx.globalAlpha=.5
+    ctx.fillText( "North Deepness", (140-HZM.currentMinXtile)*ts, (75-HZM.currentMinYtile)*ts);  
+    // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont 
+    HZM.scrollToXY(140-HZM.currentMinXtile,75-HZM.currentMinYtile);
+  },
+  //===========================================
+  eastDeepness: function( tiles )
+  {
+    //console.log("East Deepness")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+    //  156,100 to 180,172; if the depth is -1800 it's part of the feature
+    for (var x=156; x < 181; x++)
+    {
+      for ( var y = 100; y<173; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey
+        if ( tiles[ky].lvl == -1800)
+        {
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+    let fontS = Math.floor(ts *0.8)
+    ctx.font="bold "+fontS+"px Arial";
+    ctx.fillStyle="black"
+    ctx.globalAlpha=.5
+    ctx.fillText( "East Deepness", (168-HZM.currentMinXtile)*ts, (155-HZM.currentMinYtile)*ts);  
+    // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont 
+    HZM.scrollToXY(168-HZM.currentMinXtile,155-HZM.currentMinYtile);    
+  },
+  //===========================================
+  upperStormStair: function(tiles)
+  {
+    //console.log("Upper Storm Stair")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+    //  138,157 to 157,176; if the depth is -1050 it's part of the feature
+    for (var x=138; x < 158; x++)
+    {
+      for ( var y = 157; y<177; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey
+        if ( tiles[ky].lvl == -1050)
+        {
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+    let fontS = Math.floor(ts *0.8)
+    ctx.font="bold "+fontS+"px Arial";
+    ctx.fillStyle="black"
+    ctx.globalAlpha=.5
+    ctx.fillText( "Upper Storm Stair", (145-HZM.currentMinXtile)*ts, (168-HZM.currentMinYtile)*ts);  
+    // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    HZM.scrollToXY(145-HZM.currentMinXtile,168-HZM.currentMinYtile);
+  },
+  //=========================================
+  middleStormStair: function( tiles )
+  {
+    //console.log("Middle Storm Stair")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+    //  127,150 to 146,163; if the depth is -1200 it's part of the feature
+    for (var x=127; x < 147; x++)
+    {
+      for ( var y = 150; y<164; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey
+        if ( tiles[ky].lvl == -1200)
+        {
+          fx.fillRect((x-HZM.currentMinXtile )*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+    let fontS = Math.floor(ts *0.8)
+    ctx.font="bold "+fontS+"px Arial";
+    ctx.fillStyle="black"
+    ctx.globalAlpha=.5
+    ctx.fillText( "Middle Storm Stair", (133-HZM.currentMinXtile )*ts, (155-HZM.currentMinYtile)*ts);  
+    // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    HZM.scrollToXY(133-HZM.currentMinXtile,155-HZM.currentMinYtile);
+  },
+  lowerStormStair: function ( tiles ){
+    //134,144 to 146,153, depth -1650, LowerStormStair
+    //console.log("Lower Storm Stair")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+      //134,144 to 146,153; if the depth is -1650 it's part of the feature
+    for (var x=134; x < 147; x++)
+    {
+      for ( var y = 144; y<154; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey
+        if ( tiles[ky].lvl == -1650)
+        {
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+    let fontS = Math.floor(ts *0.8)
+    ctx.font="bold "+fontS+"px Arial";
+    ctx.fillStyle="black"
+    ctx.globalAlpha=.5
+    ctx.fillText( "Lower Storm Stair", (137-HZM.currentMinXtile)*ts, (149-HZM.currentMinYtile)*ts);  
+      // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    HZM.scrollToXY(137-HZM.currentMinXtile,149-HZM.currentMinYtile);
+  },
+  //==========================================
+  arkBaneDeep: function()
+  {
+    //console.log("Ark Bane Flats")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+      //111,146 to 127,158; if the depth is -900 it's part of the feature
+    for (var x=111; x < 128; x++)
+    {
+      for ( var y = 146; y<159; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey
+        if ( tiles[ky].lvl == -900)
+        {
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+      let fontS = Math.floor(ts *0.8)
+      ctx.font="bold "+fontS+"px Arial";
+      ctx.fillStyle="black"
+      ctx.globalAlpha=.5
+      ctx.fillText( "Ark Bane Flats", (117-HZM.currentMinXtile)*ts, (150-HZM.currentMinYtile)*ts);  
+      // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    HZM.scrollToXY(117-HZM.currentMinXtile,150-HZM.currentMinYtile);
+  },
+  //=============================
+  divinityDeep: function( tiles)
+  {
+    //console.log("Divinity Deeps")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+      //108,129 to 125,147; if the depth is -1500 it's part of the feature
+    for (var x=108; x < 126; x++)
+    {
+      for ( var y = 129; y<148; y++)
+      {
+        if (x >= HZM.currentMaxXtile || y>= HZM.currentMaxYtile || x < HZM.currentMinXtile || y < HZM.currentMinYtile) continue;
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
+        ky = "a" + xkey + ykey
+        if ( tiles[ky].lvl == -1500)
+        {
+          fx.fillRect((x-HZM.currentMinXtile)*ts,(y-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+    }
+      let fontS = Math.floor(ts *0.8)
+      ctx.font="bold "+fontS+"px Arial";
+      ctx.fillStyle="black"
+      ctx.globalAlpha=.5
+      ctx.fillText( "Divinity Deeps", (114-HZM.currentMinXtile)*ts, (138-HZM.currentMinYtile)*ts);  
+      // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    HZM.scrollToXY(114-HZM.currentMinXtile,138-HZM.currentMinYtile);
+  },
+  //=========================================
+  kasyaarCanyon: function( tiles)
+  {
+    //console.log("Kasyaar Canyon")
+    ts=HZM.currentTileSize
+    ctx=document.getElementById("main").getContext("2d")
+    fx = document.getElementById("tfea").getContext("2d")
+    
+    // record start values
+    startAlpha=fx.globalAlpha
+    fs=fx.fillStyle
+    startFont=ctx.font
+    // set local values
+    fx.globalAlpha=0.5
+    fx.fillStyle="#B0E0E6" //powderblue
+    
+    var xc = 45
+    var newXC = xc
+    var yspot=177
+    var curlvl=0
+    var newCurlvl=0
+
+    var keepgoing=true
+    var escapehatch=0
+    fx.fillRect((x-HZM.currentMinXtile)*ts,(yspot-HZM.currentMinYtile)*ts,ts,ts)
+    do{
+      yspot--
+      for ( var x = xc-2; x < xc+2; x++)
+      {
+        xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
+        ykey = yspot < 10 ? "00" + yspot : yspot < 100 ? "0" + yspot: yspot
+        ky = "a" + xkey + ykey
+        if (!tiles[ky] || tiles[ky].lvl < -1999) { /*console.log("Kasyaar:"+ky);*/ keepgoing=false; break }
+        if (tiles[ky].lvl <= curlvl)
+        {
+          if (tiles[ky].lvl < newCurlvl){ newCurlvl = tiles[ky].lvl; newXC = x}
+          fx.fillRect(((x)-HZM.currentMinXtile)*ts,(yspot-HZM.currentMinYtile)*ts,ts,ts)
+        }
+      }
+      xc = newXC
+    } while (keepgoing && (escapehatch++ < 1000))
+
+      let fontS = Math.floor(ts *0.8)
+      ctx.font="bold "+fontS+"px Arial";
+      ctx.fillStyle="black"
+      ctx.globalAlpha=.5
+      ctx.fillText( "Kasyaar Canyon", (44-HZM.currentMinXtile)*ts, (162-HZM.currentMinYtile)*ts);  
+    // restore start values
+    fx.globalAlpha=startAlpha
+    fx.fillStyle=fs
+    ctx.font=startFont
+    HZM.scrollToXY(44-HZM.currentMinXtile,162-HZM.currentMinYtile)
+  }
+}
+  // ========================= dry shore and river beds ===============================
+shoreObjects={
+  shoreData:{
+    umurmurShore:{xpos:0, ypos:183, d:["e","e","ne","se","se","ne","n","e","ne",/**/"e","e","e","se","se","se","e","se","e","e","e","e","e","se","se","se","se"/**/,"e","e","e","e","e","e","e","e","e"],decsription:""},
+    umurmurShoreStub:{xpos:0, ypos:183, d:["w"],decsription:""},
+    //9e,1s
+    umurmurSShore:{xpos:0, ypos:194, d:["e","e","e","e","e","e","e","e","e","s","ne","e","e","e","e","s","s","w","se","e","e","ne","ne","s","ne","n","e","n","e","ne","ne","ne","e","e","e","e","e","se","ne","e","e","e"],decsription:""},
+    umurmurSShoreStub:{xpos:0, ypos:194, d:["w"],decsription:""},
+
+    LagovaRiver:{xpos:143,ypos:1,d:["e","se","e","e","e","e","e","e","ne","e","e","n","n"],decsription:""},
+
+    DrylandsRiver:{xpos:174,ypos:105,d:["n","n","n","ne","n","n","n","ne","ne","e","e","e","se","e","e","se","se","e","se","e","e","e","e","e","e"],description:""},
+
+    CooCoosRiver:{xpos:195,ypos:162,d:["se","se","se","se","se"],description:""},
+
+    AgiaregoR:{xpos:180,ypos:180,d:["se","e","ne","e","e","s","se","sw","se","s","sw","se","se","se","se","se","sw","s","sw","sw","s","s","s","sw","s"],description:""},
+
+    GuardianRiver:{xpos:126,ypos:169,d:["se","se","s","s","sw","se","s","s","s","s","s","w","s","s","s","sw","s"],description:""},
+    EastGuardianRiver:{xpos:126,ypos:185,d:["se","se","se","se","e","s","se","se","se","s","se","s","se","s","se","se"],description:""},
+    WestGuardianRiver:{xpos:126,ypos:185,d:["sw","sw","se","s","s","w","sw","w","w","w","w","w","sw","sw","s","sw","s","s","s","s","s"],description:""},
+
+    MidGuardianRiver:{xpos:125,ypos:190,d:["e","se","se","e","s","se","se","s","se","s","se","s"],decription:""},
+
+    TinyNamelessRiver3:{xpos:104,ypos:169,d:["s","s"],description:""},
+    LittleNamelessRiver2:{xpos:94,ypos:178,d:["ne"],description:""},
+    NamelessRiver:{xpos:115,ypos:159,d:["s","s","sw","s","s","sw","s","sw","sw","s","sw","s","sw","sw","w","w","nw","nw","w","s","sw","s","sw","w","w","sw","w","w","sw","se","se","se","se","e","se","s","s","sw","s","sw","s","sw","s","sw","s","sw","s","sw","sw","s","s","s","s"],description:""},
+
+    EnisponRiver:{xpos:79,ypos:154,d:["s","s","sw","s","s","s","e","se","e","se","e","e","e","se","e"],description:""},
+
+    SmallFireRiver:{xpos:50, ypos:196, 
+    d:["e","e","ne","e","e","n","ne"],
+    description:""},
+
+    SyolifRiver:{xpos:63, ypos:162, 
+    d:["se","se","s","s","sw","s","s","s","s","se","e","se","e","e","se","e","e","se","e","e","e","se","s","se","se","e","se","s","sw","sw","w","sw","w","w","sw","w","w","sw","w","w","sw","s","sw","s","sw","s","sw","s","sw","sw","s","s","s","s"],
+    description:"One of many rivers the once rushed into what is now The Parched Sea from the mountains to its south."},
+
+    /*------------*/
+    FuryRiver:{xpos:42, ypos:184, d:["se","se","s","s","se","se","s","s","se","se","se","se","s","s","s","s"],description:"Feeds the Kasyaar River"},
+
+    KasyaarRiver:{xpos:45, ypos:177, d:["s","sw","s","w","sw","s","s","s","sw","s","s","s","s","s","sw","s","s","sw","s","sw","s","s","s","s"],description:"One of many rivers the once rushed into what is now The Parched Sea from the mountains to its south."},
+
+    LianusRiver:{xpos:18, ypos:44, d:["ne","ne","ne","n","ne","e","e","e","ne","n"],description:"A minor tributary to the Enubad river in pre transit times."},
+
+    RiverNarav:{xpos:16, ypos:94, d:["w","nw","n","nw","n","nw","nw","n","nw","nw","n","w","nw","w","w","nw","w","w","nw","w","w"],description:""},
+
+    WattabugR:{xpos:12, ypos:38, d:["w","w","w","nw","w","w","n","n","nw","n","nw","n","nw","nw","nw","nw","nw"],description:"A major river of the area, finally emptying into tye Enubad basin."},
+
+    AlriabugR:{xpos:12, ypos:38, 
+    d:["n","n","w","n","n","n","n","nw","n","n","ne","n","n","nw","n","n","ne","n","n","n","n","n","n","n","n","ne","n","n","n","n","n","n","ne","n","n","n","n","nw","n"], 
+    description:"A last large tributary to the Enubad river in pre transit times."},
+
+    LadomiavRiver:{xpos:11, ypos:36, d:["ne","ne","e","n","n","e","n","n","ne","n","e","n","n","e","n","n","ne","e","n","e","ne","ne","ne","ne","ne","n","n","n","n","n","nw","n","n","n","n","ne","n","n","n","e","e"],description:"A large tributary of the Enubad."},
+
+    RinedsRiver:{xpos:42,ypos:14,d:["nw","n","ne","se","nw","nw","ne","e","se","nw","w","nw","n","nw","nw","nw","sw","nw","nw","nw","nw","n","n","n","ne","e","n"],description:"Another great river in Pre Transit Times, not quite so large as the Enubad."},
+    NorthRinedsRiver:{xpos:38,ypos:4,d:["n","n","nw","n","n"],description:"A major tributary of the Rineds in Pre Transit Times."},
+
+    EnubadDeltaBranch:{xpos:25,ypos:50,d:["sw","w","se","w","sw"],description:"An offshoot at the mouth of the Enubad River."},
+    EnubadRiver:{xpos:30,ypos:55,d:["nw","nw","w","nw","n","nw","nw","nw","w","n","w","n","w","nw","w","n","nw","n","w","nw","w","n","nw","n","w","s","s","s","s","s","w","s","s","s","sw","s","s","sw","s","s","s","s","sw","s","s","s","s","s","s","s","s","se","se","s","se","s","s","s","s","s","sw","sw","s","w","s","sw","w","sw","w","s","w","w","nw","w"],
+    description:"One of the greatest rivers of Pre Transit times. Original cause of the Enubad Fan."},
+
+
+    PSSeaGtoE:{xpos:31,ypos:181,d:["e","w","w","w","w","nw","ne","e","e","n","w","w","w","nw","w","w","w","nw","nw","n","nw","w","nw","nw","nw","nw","nw","nw","nw","nw","nw","nw","n","n","n","nw","nw","n","n","nw","n","n","ne","n","n","n","n","n","n","n","nw","nw","nw","n","n","nw","nw","n","n","n","nw","n","ne","ne","n","n","e","n","n","e","ne","e","nw","ne","ne","n","n","n","n","n","n","n","n","n","n","n","n","n","e","n","nw","n","e","n","ne","ne","e","e","ne","e","e","n","e","n","n","n","nw","ne","nw","n","n","n","n","n","n","e","n","n","n","n","n","n","n","n","n","nw","ne","n","n","n","n","n","e","n","n","ne","n","nw","n","n","ne","n","n","n","n","n","ne","ne","n","nw","n","n","n","ne","n","se","se","sw","s","se","s","se","e","e","ne","e","ne","ne","n","ne","n","n","n","n","n","n","nw","ne","n","n","nw"],description:"Parched shore, Gyptia region to Enubad Delta/Endubad Fan region."},
+
+    PSSeaEtoNB:{xpos:30,ypos:43,d:["n","n","n","n","n","n","ne","n","n","e","e","n","n","ne","ne","ne","ne","ne","ne","n","n","n","n","ne","n","n","n","e","n","n","e","n","n","e","n","n","e","n","n","e","n","n","e","n","nw","n","n","e","n","e","e","e","ne","e","e","e","e","e","ne","n","s","se","e","n","n","e","s","s","s","e","n","ne","ne","se","e","e","se","e","e","s","s","sw","w","sw","sw","nw","w","w","nw","se","e","e","se","s","sw","sw","w","w","s","s","se","se","s","s","s","se","se","se","ne","e","e","e","ne","e","ne","n","s","s","s","e","s","se","s","se","ne","n","n","e","s","s","sw","e","s","s","e","e","se","s","sw","w","sw","s","sw","sw","w","sw","sw","sw","sw","sw","sw","s","s","s","e","e","ne","e","e","e","se","s","se","s","se","se","e","ne","se","se","se","se","s","s","s","e","s","s","s","s","s","s","w","s","s","s","s","s","s","sw","w","s","s","s","e","s","e","s"],description:""},
+
+    PSSeaNBtoNG1:{xpos:84,ypos:70,d:["se","e","e","e","e","e","ne","n","n","e","ne","n","se","n","ne","n","ne","n","ne","e","ne","ne","e","e","ne","se","se","ne","ne","n","n","ne","n","ne","n","n","n","ne","e","se","e","se","se","se","se","n","se","n","e","n","e","s","ne","s","ne","s","ne","s","e","n","ne","nw","e","n","n","n","n","n","n","n","ne","n","n","n","nw","w","w","sw","w","w","w","nw","ne","sw","s","s","w","w","sw","s","sw","sw","w","nw","w","nw","w","w","n","nw","n","nw","n","n","n","w","n","n","w","n","n","w","n","n","n","n","n","n","n","n","n","n","n","ne","nw","ne","n","n","ne","ne","ne","n","ne","n","n","n","n","n","nw","se","s","s","s","s","s","se","s","s","w","s","s","w","w","s","s","s","e","e","ne","n","ne","n","e","n","n","n","n","nw","e","n","e","n","e","n","e","n","se","n","n","n","ne","ne","ne","e","e","e","s","se","sw","s","s","ne","n","n","n","n","e","n"],description:"Parched Sea shore from New Bloom to First North Gap. North Limit of the Habitable Zone"},
+
+    PSSeaNBtoNG2:{xpos:127,ypos:0,d:["n","s","se","ne","n"],description:"The south point of a peninsula which, during The Transit, mostly disappeared beyond the habitble zone."},
+
+    PSSeaNBtoNG3:{xpos:143,ypos:0,d:["n","s","s","s","s","se","s","s","s","se","e","e","se","s","se","s","se","s","se","se","se","s","s","s","w","w","sw","n","n","n","nw","sw","s","s","w","sw","s","s","s","s","s","sw","sw","s","sw","sw","sw","sw","s","s","s","s","sw","sw","s","sw","sw","sw","sw","w","w","w","nw","w","s","sw","s","s","w","s","e","s","s","e","e","e","s","e","s","s","e","s","e","se","se","sw","se","s","s","se","s","se","e","e","se","e","e","n","n","n","n","s","s","se","s","s","s","s","e","s","se","s","e","se","se","se","e","e","s","e","se","se","se","e","s","s","e","s","e","s","s","e","s","e","s","s","se","s","e","se","s","se","s","s","e","s","s","se","s","se","e","s","e","s","w","se","se","se","s","s","se","e","se","e","e","sw","e","s","s","s","s","s","e","se","e","se","e","se","e","se","se","s","e","se","s","s","s","s","e","e","se","se","se","s","s","se","s","s","s","s","s","s","s","se","s","s","se","s","s","s","s","s","se","s","s","s","s","s","s","s","s","s","s","s","s","sw","s","s","sw","sw","s","sw","s","s","sw","sw"],description:"The north east coast of the parched sea from beyond the habitable zone to the Sharp Shield Mines."},
+
+    PSSeaGtoStout:{xpos:32,ypos:181,d:["ne","ne","ne","ne","ne","e","ne","ne","s","se","se","e","e","e","e","se","se","e","e","ne","e","e","ne","ne","ne","ne","n","n","ne","n","n","ne","ne","n","n","ne","ne","ne","ne","ne","ne","ne","ne","e","e","ne"],description:"Parched Sea Shore Gyptia to Stout Sail Hold"},
+
+    PSSeaStoutToSSMines:{xpos:71,ypos:156,d:["e","e","ne","e","e","ne","e","e","ne","e","e","ne","e","e","ne","e","e","ne","e","e","ne","e","se","e","se","ne","e","se","ne","ne","n","ne","n","e","s","se","e","s","s","s","se","se","se","se","se","se","e","se","e","se","ne","ne","se","s","sw","s","s","s","se","s","s","s","se","s","se","s","se","s","se","e","e","ne","ne","n","n","n","e","e","e","e","s","s","e","s","se","s","s","se","e","e","se","se","se","s","e","n","ne","ne","se","s","s","e","s","e","e","se","se","e","e","se","e","e","ne","ne","e","ne","ne","e","e","e","ne","ne","s","e","ne","ne","se","se","s","se","e","e","se","e","e","se","e","e","ne","ne","ne","e","ne","ne","ne","ne","e","ne","ne","ne","ne","n","ne","ne"],description:"Parched Sea Shore Stout Sail Hold to SharpShield Mines"},
+
+    subsporo:{ypos:185, xpos:19,d:["ne","e","ne","n","n","n","e","e","e","ne","ne","ne","e","e","ne","nw"]},
+
+    westDash:{xpos:6, ypos:182,d:["nw","nw","nw","nw"]},
+    wisp:{xpos:11, ypos:181,d:["ne","nw","ne","nw","ne"]},
+    felwash:{xpos:1,ypos:194, d:["s","s","s","s"]},
+    flamewash:{xpos:3,ypos:194,d:["s","s","s","s"]},
+    moltenwash:{xpos:15,ypos:196, d:["sw","w","s","s","w","w"]},
+    searingwash:{xpos:18,ypos:195,d:["s","s","s","s"]},
+    lubriaga:{xpos:0,ypos:149,d:["e","e","e","s","e","ne","e"]},/**/ 
+  },  // end of so-called shore objects data
+  // ================  method for drawing the so-called shore objects =============================
+  drawShoresRivers: function()
+  {
+    ts=HZM.currentTileSize
+    fx = document.getElementById("tfea").getContext("2d")
+    fx.strokeStyle = "red";
+    fx.lineWidth = ts/12;
+    try
+    {
+      for ( p in this.shoreData )
+      {
+        namedSR=this.shoreData[p]
+        try
+        {
+          x = namedSR["xpos"];
+          x= x - HZM.currentMinXtile
+          y= namedSR["ypos"]
+          y=y-HZM.currentMinYtile
+          var sLimit=42000  // the meaning of life times 1000
+          for(count=0; count<sLimit; count++)// draw shore or river features
+          {
+            // even with the same basic data points the path differs slightly each time you observe it
+            // this represents the 'shifting sands' of post Transit Alphito
+            if (! namedSR["d"][count])break;
+            d = namedSR["d"][count]
+            dd = this.drawRivSeg(fx,x,y,ts,ts,d)
+            x=dd[0]
+            y=dd[1]
+            
+          }
+        } catch (ex)
+        {
+          alert("ex:" + ex.message);
+        }
+      }
+    } catch (exx)
+    {
+      alert("exx:" + exx.message)
+    }
+  },
+  // ============ method for drawing details of shore objects ======================
+  drawRivSeg: function(fx,x,y,w,h,d)
+  {
+    retval=[0,0]
+    startx=x*w +(w/2)
+    starty=y*h +(h/2)
+    if ( d == "se")
+    {
+      seepx = x*w+w+(w/2)
+      seepx1 = Math.ceil(startx + Math.random()*(w*.3))
+      seepx2 = Math.ceil(seepx1 + Math.random()*(w*.4))
+      seepx3 = Math.ceil(seepx2 + Math.random()*(w*.3))
+      seepy = y*h+h+(h/2)
+      seepy1 = Math.ceil(starty + Math.random() * (w*.3))
+      seepy2 = Math.ceil(seepy1 + Math.random() * (w*.4))
+      seepy3 = Math.ceil(seepy2 + Math.random() * (w*.3)) // se corner checked
+      retval=[x+1,y+1]
+      
+      fx.beginPath();
+      fx.moveTo(startx, starty)
+      fx.lineTo(seepx1, seepy1 )
+      fx.lineTo(seepx2, seepy2 )
+      fx.lineTo(seepx3, seepy3 )
+      fx.lineTo(seepx, seepy) // se corner checked
+      fx.stroke();
+    } else if ( d == "nw" )
+    {
+      nwepx1 = Math.ceil(startx - Math.random()*(w*.3))
+      nwepx2 = Math.ceil(nwepx1 - Math.random()*(w*.4))
+      nwepx3 = Math.ceil(nwepx2 - Math.random()*(w*.3))
+      nwepy1 = Math.ceil(starty - Math.random() * (w*.3))
+      nwepy2 = Math.ceil(nwepy1 - Math.random() * (w*.3))
+      nwepy3 = Math.ceil(nwepy2 - Math.random() * (w*.3)) // nw corner checked
+      nwepx = x*w - (w/2);
+      nwepy = y*h - (h/2)
+      retval=[x-1,y-1]
+      
+      fx.beginPath();
+      fx.moveTo(startx, starty)
+      fx.lineTo(nwepx1, nwepy1 )
+      fx.lineTo(nwepx2, nwepy2 )
+      fx.lineTo(nwepx3, nwepy3 )
+      fx.lineTo(nwepx, nwepy) // nw corner checked
+      fx.stroke();
+    } else if ( d == "ne")
+    {
+      neepx=x*w+w+(w/2)
+      neepy=y*h-(w/2)
+      neepx1=Math.ceil(startx + Math.random()*(w*.3))
+      neepx2=Math.ceil(neepx1 + Math.random()*(w*.4))
+      neepx3=Math.ceil(neepx2 + Math.random()*(w*.3))
+      neepy1=Math.ceil(starty - Math.random() * (w*.3))
+      neepy2=Math.ceil(neepy1 - Math.random() * (w*.3))
+      neepy3=Math.ceil(neepy2 - Math.random() * (w*.3)) // ne corner checked
+      retval=[x+1,y-1]
+      
+      fx.beginPath();
+      fx.moveTo(startx, starty)
+      fx.lineTo(neepx1, neepy1 )
+      fx.lineTo(neepx2, neepy2 )
+      fx.lineTo(neepx3, neepy3 )
+      fx.lineTo(neepx, neepy) // ne corner checked
+      fx.stroke()
+    } else if ( d == "sw")
+    {
+      swepx=x*w - (w/2)
+      swepy=y*h+w+(w/2)
+      swepx1=Math.ceil(startx - Math.random()*(w*.3))
+      swepx2=Math.ceil(swepx1 - Math.random()*(w*.4))
+      swepx3=Math.ceil(swepx2 - Math.random()*(w*.3))
+      swepy1 = Math.ceil(starty + Math.random() * (w*.3))
+      swepy2 = Math.ceil(swepy1 + Math.random() * (w*.4))
+      swepy3 = Math.ceil(swepy2 + Math.random() * (w*.3)) // sw corner checked
+      retval=[x-1,y+1]
+      
+      fx.beginPath();
+      fx.moveTo(startx, starty)
+      fx.lineTo(swepx1, swepy1 )
+      fx.lineTo(swepx2, swepy2 )
+      fx.lineTo(swepx3, swepy3 )
+      fx.lineTo(swepx, swepy) // sw corner checked
+      fx.stroke();
+    } else if ( d == "n" )
+    {
+      nepx=x*w+(w/2)
+      nepx1=Math.ceil(startx - Math.random()*(w*.3))
+      nepx2=Math.ceil(nepx1 + Math.random()*(w*.4))
+      nepx3=Math.ceil(nepx2 - Math.random()*(w*.3))
+      nepy=(y*h)-(h/2)
+      nepy1 = Math.ceil(starty - Math.random() * (w*.3))
+      nepy2 = Math.ceil(nepy1 - Math.random() * (w*.4))
+      nepy3 = Math.ceil(nepy2 - Math.random() * (w*.3))// north checked
+      retval=[x,y-1]
+      
+      fx.beginPath();
+      fx.moveTo(startx, starty)
+      fx.lineTo(nepx1, nepy1 )
+      fx.lineTo(nepx2, nepy2 )
+      fx.lineTo(nepx3, nepy3 )
+      fx.lineTo(nepx, nepy) // n side checked
+      fx.stroke();
+    } else if ( d == "s" )
+    {
+      sepx=(x*w+(w/2))
+      sepx1=Math.ceil(startx - Math.random()*(w*.3))
+      sepx2=Math.ceil(sepx1 + Math.random()*(w*.4))
+      sepx3=Math.ceil(sepx2 - Math.random()*(w*.3))
+      sepy=(y*h)+(h/2)+(h/2)+(h/2)
+      sepy1 = Math.ceil(starty + Math.random() * (w*.3))
+      sepy2 = Math.ceil(sepy1 + Math.random() * (w*.4))
+      sepy3 = Math.ceil(sepy2 + Math.random() * (w*.3)) // south
+      retval=[x,y+1]
+      
+      fx.beginPath();
+      fx.moveTo(startx, starty)
+      fx.lineTo(sepx1, sepy1 )
+      fx.lineTo(sepx2, sepy2 )
+      fx.lineTo(sepx3, sepy3 )
+      fx.lineTo(sepx, sepy) // s side checked
+      fx.stroke();
+    } else if ( d == "e" )
+    {
+      eepx=(x*w+(w/2)+(w/2)+(w/2))
+      eepx1=Math.ceil(startx + Math.random()*(w*.3))
+      eepx2=Math.ceil(eepx1 + Math.random()*(w*.4))
+      eepx3=Math.ceil(eepx2 + Math.random()*(w*.3))
+      eepy=(y*h)+(h/2)
+      eepy1 = Math.ceil(starty + Math.random() * (w*.3))
+      eepy2 = Math.ceil(eepy1 - Math.random() * (w*.4))
+      eepy3 = Math.ceil(eepy2 + Math.random() * (w*.3)) // east checked
+      retval=[x+1,y]
+      
+      fx.beginPath();
+      fx.moveTo(startx, starty)
+      fx.lineTo(eepx1, eepy1 )
+      fx.lineTo(eepx2, eepy2 )
+      fx.lineTo(eepx3, eepy3 )
+      fx.lineTo(eepx, eepy) // e side checked
+      fx.stroke();
+    } else if ( d == "w" )
+    {
+      wepx=x*w-(w/2)
+      wepx1=Math.ceil(startx - Math.random()*(w*.3))
+      wepx2=Math.ceil(wepx1 - Math.random()*(w*.4))
+      wepx3=Math.ceil(wepx2 - Math.random()*(w*.3))
+      wepy=(y*h)+(h/2)
+      wepy1 = Math.ceil(starty + Math.random() * (w*.3))
+      wepy2 = Math.ceil(wepy1 - Math.random() * (w*.4))
+      wepy3 = Math.ceil(wepy2 + Math.random() * (w*.3)) // west c
+      retval=[x-1,y]
+      
+      fx.beginPath();
+      fx.moveTo(startx, starty)
+      fx.lineTo(wepx1, wepy1 )
+      fx.lineTo(wepx2, wepy2 )
+      fx.lineTo(wepx3, wepy3 )
+      fx.lineTo(wepx, wepy) // w side checked
+      fx.stroke(); 
+    }
+
+    //ctx.fillStyle="red";
+    //ctx.fillRect(x*w+(w/2), y*h+(h/2), 10, 10)
+    return retval;
+  },  
+  //========================================  
+  otherStuff:0  
+  
+} // end of shore objects
+// try implementing the tiles as a class of objects, each instance of which draws itself
+// some things, such as dried up shorelines and river beds are multi-tile objects that the tile does not draw when it draws itself
+// such items are in the HZM object
+class Tile
+{
+  constructor( xpos, ypos )
+  {
+    this.xpos=xpos;
+    this.ypos=ypos;
+    var yy = xpos == 0 ? (1000)+ypos :(xpos*1000)+ypos;
+    yy= xpos>=0 && xpos < 10 ? "a00" + yy : xpos >= 10 && xpos < 100 ? "a0"+yy : "a"+yy
+    yy = xpos == 0 ? yy.replace("1","0") : yy
+    this.k=yy
+    // from here is code useable only after tiles data is createDocumentFragment
+    this.ttype = tiles[yy].ttype
+    this.tstory=tiles[yy].tstory
+    this.fertility=tiles[yy].fertility
+    this.s=tiles[yy].s
+    this.lvl=tiles[yy].lvl
+    this.tname=tiles[yy].tname
+  }
+  drawBleakness( ctx, xp, yp, tileSize ){
+    var bb = "a" + this.fertility
+    var fs=ctx.fillStyle;
+    try{
+      ctx.fillStyle=HZM.bleakness[bb]["bgcc"];
+    } catch (ex){
+      console.log("ERR:" + bb)
+      console.log("ERR:yy:" + this.k)
+    }
+     ctx.fillRect(xp+1, yp+1, tileSize-1, tileSize-1)
+    // restore inits altered by local function 
+    ctx.fillStyle=fs
+  }
+  displaySettlerSymbols( ctx, xp, yp, tileSize )
+  {
+    if ( this.fertility < 320 ) return  // do this check here for maintainability, if we change the minimum settlement fertility, this will be a natural place to look
+    // record inits used here
+    var fs=ctx.fillStyle
+    var currentlw = ctx.lineWidth
+    var currentSstyle = ctx.strokeStyle;
+    var ga=ctx.globalAlpha
+    
+    ctx.globalAlpha=1.0
+    var bb = "a" + this.fertility;
+    
+    if (!this.ttype) {console.log("tile:" + this.xpos + "," + this.ypos); }  //record the tile then let the program crash; need to fix the bad data
+    var ty=this.ttype
+    if ( undefined == HZM.sColor[ty] ) { console.log("ty="+ty + "Tile:" + this.xpos + "," + this.ypos) } // another possible data problem
+    ctx.fillStyle=HZM.sColor[ty][0]
+    ctx.strokeStyle=HZM.sColor[ty][1]
+    ctx.lineWidth = HZM.bleakness[bb]["sz"];
+    var offset1=tileSize*(15/50)
+
+    ctx.beginPath();
+    ctx.arc(xp+offset1, yp+offset1, (tileSize*(5/50)+HZM.bleakness[bb]["sz"]), HZM.sColor[ty][2],HZM.sColor[ty][3]*Math.PI,HZM.sColor[ty][4])
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(xp+offset1, yp+offset1, (tileSize*(5/50)+HZM.bleakness[bb]["sz"]), HZM.sColor[ty][2],HZM.sColor[ty][3]*Math.PI,HZM.sColor[ty][4]) 
+    ctx.closePath();
+    ctx.stroke(); 
+
+    //restore
+    ctx.fillStyle=fs
+    ctx.strokeStyle=currentSstyle;
+    ctx.lineWidth=currentlw
+    ctx.globalAlpha=ga
+  }
+  drawSlopes( ctx, xp, yp, tileSize )
+  {
+    //for ( var sc = 0; sc<this.s.length; sc++)
+    //{
+    //  console.log(this.s[sc]) ;HZM[this.s[sc]](ctx, xp, yp, tileSize)
+    //}
+  }
+  drawPreTransit(ctx, xp, yp, tileSize )
+  {
+    var clr=null
+    if (this.lvl > 0) { clr = HZM.preTransitWaters.land}
+    else if (this.lvl < 0){ clr = HZM.preTransitWaters.sea}
+    else if (this.lvl== 0){ clr = HZM.preTransitWaters.shore}
+    var fs = ctx.fillStyle
+    ctx.fillStyle=clr
+    ctx.fillRect(xp+1, yp+1, tileSize-1, tileSize-1)
+    ctx.fillStyle=fs   
+  }
+  drawTownNames(ctx1, xp, yp, tileSize )
+  {
+    var ts = tileSize
+    if (this.fertility<320){return}
+    var ctx = document.getElementById("ctext").getContext("2d")
+    if (this.fertility==320){ ctx.font= Math.max(8, (12/50)*ts )+"px Arial";} // try this simple formula first
+    else if (this.fertility==640){ ctx.font=Math.max(8, (14/50)*ts )+"px Arial";}
+    else if (this.fertility==1280){ ctx.font=Math.max(8, (16/50)*ts )+"px Arial";}
+    else if (this.fertility==2560){ ctx.font=Math.max(8, (18/50)*ts )+"px Arial";}
+    else if (this.fertility==5120){ ctx.font=Math.max(8, (20/50)*ts )+"px Arial";}
+    else if (this.fertility==10240){ ctx.font="bold "+Math.max(8, (22/50)*ts )+"px Arial";}
+    else if (this.fertility==20480){ ctx.font="bold "+Math.max(8, (24/50)*ts )+"px Arial";}
+    else if (this.fertility==40960){ ctx.font="bold "+Math.max(8, (26/50)*ts )+"px Arial";}
+    else if (this.fertility==81920){ ctx.font="bold "+Math.max(8, (28/50)*ts )+"px Arial";}
+    ctx.fillStyle="purple"
+    ctx.globalAlpha=1.0;
+    //console.log(this.tname +" font:"+ctx.font)
+    ctx.fillText( this.tname, xp+(tileSize*(15/50)), yp+(tileSize*(15/50)));
+    
+  }
+
+  drawSelf( ctx ) // ctx is the 2D context of a canvas object
+  {
+    //console.log("ds")
+    // test whether to draw the tile or not; based on tile xypos
+    if ( this.xpos < HZM.currentMinXtile) return
+    //console.log("ds 3")    
+    if ( this.xpos > HZM.currentMaxXtile) return
+    //console.log("ds 4")
+    if ( this.ypos < HZM.currentMinYtile) return
+    //console.log("ds 5")
+    if ( this.ypos > HZM.currentMaxYtile) return
+    //console.log("ds 6")    
+    // passed xypos test now test based on pixel position
+    var tileSize = HZM.currentTileSize
+    //console.log("ds 7")    
+    var xp = (this.xpos-HZM.currentMinXtile)*HZM.currentTileSize // left
+    //console.log("ds 8")    
+    var yp = (this.ypos-HZM.currentMinYtile)*HZM.currentTileSize // top
+    //console.log("ds 9 xp + HZM.currentTileSize=" + xp + HZM.currentTileSize +",HZM.currentMaxXpx:"+HZM.currentMaxXpx)
+    if (( xp + HZM.currentTileSize) > HZM.currentMaxXpx) return
+    //console.log("ds 10")
+    if (( yp + HZM.currentTileSize) > HZM.currentMaxYpx) return
+    //console.log("ds 2 xp=" +xp + "yp="+yp)
+    // draw tile outline
+    //ctx.strokeStyle="black"
+    //ctx.lineWidth=5
+    ctx.strokeRect(xp, yp, tileSize, tileSize); // canvas method
+    // draw background
+    if (HZM.currentDisplay == 0) // post transit background
+    {
+      //console.log("ds 11")    
+      this.drawBleakness( ctx, xp, yp, tileSize )
+    //console.log("ds 12")
+      this.drawSlopes( ctx, xp, yp, tileSize )
+    }else{ // pre transit background
+      this.drawPreTransit(ctx, xp, yp, tileSize )
+    //console.log("ds 13")
+    }
+    //console.log("ds 14")
+    this.displaySettlerSymbols( ctx, xp, yp, tileSize )
+    //console.log("ds 15")
+    this.drawTownNames( ctx, xp, yp, tileSize )
+    //console.log("ds 16")
+  }
+}
