@@ -27,7 +27,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   currentRowSize:null,
   currentColSize:null,
   currentTileSize:null,
-  currentDisplay:0,  // 0 is post transit, 1 is pre transit, using numeric instead of boolean allows other options in future
+  currentDisplay:0,  // 0 is post transit, 1 is altitude, 2 is pre transit, using numeric instead of boolean allows other options in future
   initMap: function()
   {
     this.currentMaxXpx=this.absMaximumXpx
@@ -166,6 +166,65 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
     land:"#A52A2A", // brown
     sea:"#0000FF", // blue
     shore:"#2E8B57" // seagreen
+  },
+  altitude:{
+    b4650:{bgcc:"#4169E1", desc:"RoyalBlue"},
+    b2250:{bgcc:"#1E90FF", desc:"DodgerBlue"},
+    b2200:{bgcc:"#00BFFF", desc:"DeepSkyBlue"},
+    b2050:{bgcc:"#6495ED", desc:"CornflowerBlue"},
+    b2000:{bgcc:"#87CEEB", desc:"SkyBlue"},
+    b1950:{bgcc:"#87CEFA", desc:"LightSkyBlue"},
+    b1850:{bgcc:"#B0E0E6", desc:"PowderBlue"},
+    b1800:{bgcc:"#ADD8E6", desc:"LightBlue"},
+    b1700:{bgcc:"#B0C4DE", desc:"LightSteelBlue"},
+    b1650:{bgcc:"#4682B4", desc:"SteelBlue"},
+    b1500:{bgcc:"#5F9EA0", desc:"CadetBlue"},
+    b1350:{bgcc:"#00CED1", desc:"DarkTurquoise"},
+    b1200:{bgcc:"#330077", desc:"MediumTurquoise"},
+    b1050:{bgcc:"#40E0D0", desc:"Turquoise"},
+    b900:{bgcc:"#7FFFD4", desc:"Aquamarine"},
+    b750:{bgcc:"#AFEEEE", desc:"PaleTurquoise"},
+    b600:{bgcc:"#66CDAA", desc:"MediumAquaMarine"},
+    b450:{bgcc:"#8FBC8F", desc:"DarkSeaGreen"},
+    b300:{bgcc:"#20B2AA", desc:"LightSeaGreen"},
+    b200:{bgcc:"#008B8B", desc:"DarkCyan"},
+    b150:{bgcc:"#008080", desc:"Teal"},
+    b140:{bgcc:"#ADFF2F", desc:"GreenYellow"},
+    b120:{bgcc:"#BDB76B", desc:"DarkKhaki"},
+    b100:{bgcc:"#F0E68C", desc:"Khaki"},
+    b90:{bgcc:"#FFDAB9", desc:"PeachPuff"},
+    b70:{bgcc:"#FFE4B5", desc:"Moccasin"},
+    b60:{bgcc:"#FFEFD5", desc:"PapayaWhip"},
+    b50:{bgcc:"#FAFAD2", desc:"LightGoldenRodYellow"},
+    b20:{bgcc:"#FFFACD", desc:"LemonChiffon"},
+    b10:{bgcc:"#FFFFE0", desc:"LightYellow"},
+    b2:{bgcc:"#FFFF00", desc:"Yellow"},
+    b1:{bgcc:"#FFD700", desc:"Gold"},
+    b0:{bgcc:"#0000FF", desc:"Blue"},
+    a1:{bgcc:"#FFFFFF", desc:"White"},
+    a2:{bgcc:"#FFFAFA", desc:"Snow"},
+    a3:{bgcc:"#F0FFF0", desc:"HoneyDew"},
+    a4:{bgcc:"#F5FFFA", desc:"MintCream"},
+    a5:{bgcc:"#F0FFFF", desc:"Azure"},
+    a6:{bgcc:"#F0F8FF", desc:"AliceBlue"},
+    a10:{bgcc:"#F8F8FF", desc:"GhostWhite"},
+    a20:{bgcc:"#F5F5F5", desc:"WhiteSmoke"},
+    a40:{bgcc:"#FFF5EE", desc:"SeaShell"},
+    a50:{bgcc:"#F5F5DC", desc:"Beige"},
+    a150:{bgcc:"#FDF5E6", desc:"OldLace"},
+    a300:{bgcc:"#FFFAF0", desc:"FloralWhite"},
+    a450:{bgcc:"#FFFFF0", desc:"Ivory"},
+    a600:{bgcc:"#FAEBD7", desc:"AntiqueWhite"},
+    a750:{bgcc:"#FAF0E6", desc:"Linen"},
+    a900:{bgcc:"#FFF0F5", desc:"LavenderBlush"},
+    a1050:{bgcc:"#FFE4E1", desc:"MistyRose"},
+    a1200:{bgcc:"#DEB887", desc:"BurlyWood"},
+    a1350:{bgcc:"#D2B48C", desc:"Tan"},
+    a1500:{bgcc:"#BC8F8F", desc:"RosyBrown"},
+    a1650:{bgcc:"#F4A460", desc:"SandyBrown"},
+    a1800:{bgcc:"#DAA520", desc:"GoldenRod"},
+    a2000:{bgcc:"#B8860B", desc:"DarkGoldenRod"},
+    a2400:{bgcc:"#CD853F", desc:"Peru"}
   },
   bleakness:{
     a10:{bgcc:"#FFF000", lupCode:"#FF0000", ldownCode:"#DDA0DD",sz:0,d:"most extremely dry",e:-4},
@@ -1278,6 +1337,20 @@ class Tile
     // restore inits altered by local function 
     ctx.fillStyle=fs
   }
+  drawAltitude(ctx, xp, yp, tileSize)
+  {
+    console.log("altitude")
+    var bb = this.lvl > 0 ? "a" + this.lvl : "b" + Math.abs(this.lvl)
+    var fs=ctx.fillStyle
+    try{
+      ctx.fillStyle=HZM.altitude[bb]["bgcc"];
+    } catch (ex){
+      console.log("altitude ERR: bb=" + bb)
+      console.log("ERR:yy:" + this.k)
+    }
+    ctx.fillRect(xp+1, yp+1, tileSize-1, tileSize-1)
+    ctx.fillStyle=fs
+  }
   displaySettlerSymbols( ctx, xp, yp, tileSize )
   {
     if ( this.fertility < 320 ) return  // do this check here for maintainability, if we change the minimum settlement fertility, this will be a natural place to look
@@ -1387,7 +1460,10 @@ class Tile
       this.drawBleakness( ctx, xp, yp, tileSize )
     //console.log("ds 12")
       this.drawSlopes( ctx, xp, yp, tileSize )
-    }else{ // pre transit background
+    } else if (HZM.currentDisplay == 1) {
+      this.drawAltitude( ctx, xp, yp, tileSize )
+      this.drawSlopes( ctx, xp, yp, tileSize )
+    } else{ // pre transit background
       this.drawPreTransit(ctx, xp, yp, tileSize )
     //console.log("ds 13")
     }

@@ -46,9 +46,10 @@
       <label for="go_town" style="display:inline">Go:</label><input type="button" id="go_town" name="go_town">
       <label for="go_townr" style="display:inline">Dismiss:</label><input type="button" id="go_townr" name="go_townr"><br>
     </form>
-    <form id="eraDisplay" style="display:none; position:absolute;top:4500px;left:3600px;width:200px;height:100px;border:2px solid #0000FF;z-index:5;background-color:orange">
-      Era:<br>
-      <label for="show_parch" style="display:inline">Post-Transit:</label><input type="button" id="show_parch" name="show_parch"><br>
+    <form id="eraDisplay" style="display:none; position:absolute;top:4500px;left:3600px;width:200px;height:110px;border:2px solid #0000FF;z-index:5;background-color:orange">
+      Fertility/Altitude/Prior Era:<br>
+      <label for="show_parch" style="display:inline">Fertility:</label><input type="button" id="show_parch" name="show_parch"><br>
+      <label for="show_altitude" style="display:inline">Altitude:</label><input type="button" id="show_altitude" name="show_altitude"><br>
       <label for="show_sea" style="display:inline">Pre-Transit:</label><input type="button" id="show_sea" name="show_sea"><br>
       <label for="era_displayr" style="display:inline">Dismiss:</label><input type="button" id="era_displayr" name="era_displayr"><br>
     </form>
@@ -76,9 +77,16 @@
         HZM.adjustArea( HZM.currentMaxXpx, HZM.currentRowSize, HZM.currentMinXtile, HZM.currentMinYtile );
         HZM.showArea()
       };
+      var show_altitude =document.getElementById("show_altitude")
+      show_altitude.onclick=function(e){
+        HZM.currentDisplay=1;
+        console.log("" + HZM.currentMaxXpx +","+ HZM.currentRowSize+","+ HZM.currentMinXtile+","+ HZM.currentMinYtile )
+        HZM.adjustArea( HZM.currentMaxXpx, HZM.currentRowSize, HZM.currentMinXtile, HZM.currentMinYtile );
+        HZM.showArea()
+      };
       var show_sea =document.getElementById("show_sea")
       show_sea.onclick=function(e){
-        HZM.currentDisplay=1;
+        HZM.currentDisplay=2;
         HZM.adjustArea( HZM.currentMaxXpx, HZM.currentRowSize, HZM.currentMinXtile, HZM.currentMinYtile ); 
         HZM.showArea()
       };
