@@ -136,7 +136,7 @@
         tests.tt=1; 
         tests.tm="sequential"; 
         tests.tb= document.getElementById("tts_min").value
-        tests.te= document.getElementById("tts_min").value
+        tests.te= document.getElementById("tts_max").value
         doTests( tests )
       }
       var show_ttr=document.getElementById("show_ttr")
@@ -150,7 +150,7 @@
       var go_tts=document.getElementById("go_tts")
       go_tts.onclick=function(e){
         //alert("success"); 
-        tests.tb=tests.tb+1; 
+        tests.tb=Number(tests.tb)+1; 
         doTests( tests )
       }
       var go_ttf = document.getElementById("go_ttf")
@@ -158,7 +158,7 @@
         tv = document.getElementById("town").value
         //alert("fail:" + tv );
         console.log("fail:" + tv );        
-        tests.tb=tests.tb+1; 
+        tests.tb=Number(tests.tb)+1; 
         doTests( tests )
       }
       var go_townr =document.getElementById("go_townr")
@@ -429,6 +429,7 @@
               ttf.style.display="inline"
               tform = document.getElementById("townForm")
               tform.style.display="inline";
+              console.log("tests.tb=" + Number(tests.tb)) 
               goTownF(tnames[tests.tb].toUpperCase())
               tform.style.top=HZM.currentTileSize*((yt+1)-HZM.currentMinYtile)+"px"
               tform.style.left=HZM.currentTileSize*((xt+1)-HZM.currentMinXtile)+"px"
