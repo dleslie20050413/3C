@@ -1,6 +1,7 @@
 /* somewhat abstracted from the base canvas objects but not actually independent. Canvas properties and methods are used
 */
-HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because there is only one map //Map is already a Javascript defined object
+HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because there is only one map
+  //Map is already a Javascript defined object
   // define the biggest we will allow the map canvas to be in pixels
   // and the biggest area we will allow it to depict in tiles
   absMaximumXpx:10000,
@@ -8,7 +9,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   absMinimumXpx:1000,
   absMinimumYpx:1000,
   // these are absolute only because this defines the paramaters of the habitable zone
-  // if the tiles are changed to describe a size that is something othervthan 5 miles then the numbers could change
+  // if the tiles are changed to describe a size that is something other than 5 miles then the numbers could change
   absMaximumXtile:200, // 200-1=199
   absMaximumYtile:200, // 200-1=199
   absMinimumXtile:0,
@@ -27,9 +28,12 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   currentRowSize:null,
   currentColSize:null,
   currentTileSize:null,
-  currentDisplay:0,  // 0 is post transit, 1 is altitude, 2 is pre transit, using numeric instead of boolean allows other options in future
+  currentDisplay:0,  // 0 is post transit fertility, 
+                     // 1 is altitude, 
+                     // 2 is pre transit 
   initMap: function()
   {
+    console.log("init map")
     this.currentMaxXpx=this.absMaximumXpx
     this.currentMaxYpx=this.absMaximumYpx
     this.currentMinXpx=this.absMinimumXpx
@@ -44,6 +48,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   },
   reset: function ()
   {
+    console.log("reset")
     this.currentMaxXpx=this.absMaximumXpx
     this.currentMaxYpx=this.absMaximumYpx
     this.currentMinXpx=this.absMinimumXpx
@@ -58,7 +63,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   },  
   adjustArea: function ( pxil, rsize, lft, tp)
   { // adjust parameters for displaying map portions
-    //console.log("adjustArea pxil:" +  pxil + ",rsize=" + rsize + ",lft=" + lft +", tp=" + tp)
+    console.log("adjustArea pxil:" +  pxil + ",rsize=" + rsize + ",lft=" + lft +", tp=" + tp)
     mc = document.getElementById("main")
     mc2 = document.getElementById("ctext")
     mc3 = document.getElementById("tfea")
@@ -94,7 +99,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   },
   showArea: function() // for now ctx is only for main canvas
   {
-    //console.log("showArea")
+    console.log("showArea MinX:" + HZM.currentMinXtile + " maxX:" + HZM.currentMaxXtile  + " minY:" + HZM.currentMinYtile + "maxY:" + HZM.currentMaxYtile )
     ctx=document.getElementById("main").getContext("2d")
     for( var x=HZM.currentMinXtile; x<HZM.currentMaxXtile; x++)
     {
@@ -118,6 +123,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   },
   setTileArea: function( minX, minY, maxX, maxY)
   {
+    console.log("setTileArea")
     this.currentMaxXtile=maxX
     this.currentMaxYtile=maxY
     this.currentMinXtile=minX
@@ -128,6 +134,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   },
   setPxArea: function( minX, minY, maxX, maxY)
   {
+    console.log("setPxArea")
     this.currentMaxXpx=maxX
     this.currentMaxYpx=maxY
     this.currentMinXpx=minX
@@ -136,12 +143,13 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   },
   getViewportSize: function()
   {
+    console.log("getViewportSize")
     if (window.innerWidth != null) return {w: window.innerWidth, h:window.innerHeight }
     return null;
   },
   scrollToXY: function (vx, vy){
     //document.getElementById("placingForm").scrollIntoView()
-    //console.log("scrollToXY:" +vx + "," + vy)
+    console.log("scrollToXY:" +vx + "," + vy)
     // ================ it might be required that the screen be redrawn; start here ================
     tmpx = vx
     tmpy = vy
@@ -157,6 +165,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   },
   tileKeyFromXY: function(x,y)
   {
+    console.log("tileKeyFromXY")
     var xkey = x < 10 ? "00" + x : x < 100 ? "0" + x: x
     var ykey = y < 10 ? "00" + y : y < 100 ? "0" + y: y
     var ky =  "a" + xkey + ykey
@@ -259,6 +268,7 @@ HZM={ // (H)abitable (Z)one (M)apt this can be an object and not a class because
   },
   S: function(ctx,xp,yp,tilesize)
   {
+    console.log("S")
     var w = tilesize
     var h = tilesize
     ctx.beginPath();// start path for arrow with base at south and apex at center
@@ -1422,7 +1432,12 @@ class Tile
     ctx.fillStyle="purple"
     ctx.globalAlpha=1.0;
     //console.log(this.tname +" font:"+ctx.font)
-    ctx.fillText( this.tname, xp+(tileSize*(15/50)), yp+(tileSize*(15/50)));
+    //if ( this.tname == "Whittled Slip" ) console.log( "Whittled Slip:" + Math.floor(xp/tileSize)) 
+    if (Math.floor(xp/tileSize) == 199 ){ 
+      if (this.tname.length > 1) 
+        { ctx.fillText( this.tname, (xp-tileSize)+(tileSize*(15/50)), yp+(tileSize*(15/50)));}
+    }
+    else {ctx.fillText( this.tname, xp+(tileSize*(15/50)), yp+(tileSize*(15/50)));}
     
   }
 

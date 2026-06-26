@@ -3,55 +3,87 @@
   <head>
     <meta charset="UTF-8">
     <title>Alphito4_ex03</title>
-<style>
-.tooltip {
-  position: relative;
-  display: inline-block;
-  border-bottom: 1px dotted black;
-}
+    <style>
+      .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black;
+      }
 
-.tooltip .tooltiptext {
-  visibility: hidden;
-  width: 250px;
-  background-color: black;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 0;
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 250px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px 0;
 
-  /* Position the tooltip */
-  position: absolute;
-  z-index: 6;
-}
+        /* Position the tooltip */
+        position: absolute;
+        z-index: 6;
+      }
 
-.tooltip:hover .tooltiptext {
-  visibility: visible;
-}
-</style>
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+      }
+    </style>
     <script id="basicMapObject" src="basicMapObject.jsafe"></script>
     <script id="tilesFLST" src="tilesFLST.jsafe"></script>
+    <script> 
+      var tests={
+         tt:0, /*0 is none, 1 is towns*/
+         tm:"", /* sequential or random */
+         tb:0,  /* begin */
+         te:1,  /* end */
+      }
+    </script>    
   </head>
   <body id="body" style="background-image: url('Parched_Sea_3_10000.png');" >
     
-    <form id="xyForm" style="display:none; position: absolute;top: 4500px;left: 4500px;width: 200px;height: 100px;border: 2px solid #0000FF;z-index: 5;;background-color:white">
+    <form id="xyForm" style="display:none; position: absolute;top: 4500px;left: 4500px;width: 200px;height: 125px;border: 2px solid #0000FF;z-index: 5;;background-color:white">
       XY Navigation: <br>(0-199x and 0-199y)<br>
       <label id="xtilelbl" for="xtile" style="display:inline">X:</label><input style="display:inline" type="number" id="xtile" name="xtile" min="0" max="199">
       <label id="ytilelbl" for="ytile" style="display:inline">Y:</label><input style="display:inline" type="number" id="ytile" name="ytile" min="0" max="199"><br>
-      <label for="go_xy" style="display:inline">Go:</label><input type="button" id="go_xy" name="go_xy">
-      <label for="go_xyr" style="display:inline">Dismiss:</label><input type="button" id="go_xyr" name="go_xyr"><br>
+      <label for="go_xy" style="display:inline">Go:</label>
+        <input type="button" id="go_xy" name="go_xy">
+      <label for="go_xyr" style="display:inline">Dismiss:</label>
+        <input type="button" id="go_xyr" name="go_xyr"><br>
+      <span id="testXYForm" style="display:none">
+        <label for="go_txys" style="display:inline">Good:</label>
+          <input type="button" id="go_txys" name="go_txys">
+        <label for="go_txyf" style="display:inline">Fail:</label>
+          <input type="button" id="go_txyf" name="go_txyf">
+      </span>
     </form>
-    <form id="townForm" style="display:none; position: absolute;top: 4500px;left: 4100px;width: 200px;height: 100px;border: 2px solid #0000FF;z-index: 5;;background-color:white">
+    <form id="townForm" style="display:none; position: absolute;top: 4500px;left: 4100px;width: 200px;height: 125px;border: 2px solid #0000FF;z-index: 5;;background-color:white">
       Town Navigation: <br>Town Name (exact)<br>
-      <label id="townlbl" for="go_town" style="display:inline">Town:</label><input style="display:inline" id="town" name="town"><br>
-      <label for="go_town" style="display:inline">Go:</label><input type="button" id="go_town" name="go_town">
-      <label for="go_townr" style="display:inline">Dismiss:</label><input type="button" id="go_townr" name="go_townr"><br>
+      <label id="townlbl" for="town" style="display:inline">Town:</label>
+        <input style="display:inline" id="town" name="town"><br>
+      <label for="go_town" style="display:inline">Go:</label>
+        <input type="button" id="go_town" name="go_town">
+      <label for="go_townr" style="display:inline">Dismiss:</label>
+        <input type="button" id="go_townr" name="go_townr"><br>
+      <span id="testTownForm" style="display:none">
+        <label for="go_tts" style="display:inline">Good:</label>
+          <input type="button" id="go_tts" name="go_tts">
+        <label for="go_ttf" style="display:inline">Fail:</label>
+          <input type="button" id="go_ttf" name="go_ttf">
+      </span>
     </form>
     <form id="eraDisplay" style="display:none; position:absolute;top:4500px;left:3600px;width:200px;height:110px;border:2px solid #0000FF;z-index:5;background-color:orange">
-      Fertility/Altitude/Prior Era:<br>
+      Fertility/Altitude/Iron Age:<br>
       <label for="show_parch" style="display:inline">Fertility:</label><input type="button" id="show_parch" name="show_parch"><br>
       <label for="show_altitude" style="display:inline">Altitude:</label><input type="button" id="show_altitude" name="show_altitude"><br>
       <label for="show_sea" style="display:inline">Pre-Transit:</label><input type="button" id="show_sea" name="show_sea"><br>
       <label for="era_displayr" style="display:inline">Dismiss:</label><input type="button" id="era_displayr" name="era_displayr"><br>
+    </form>
+    <form id="testing" style="display:none; position:absolute;top:4500px;left:3600px;width:200px;height:110px;border:2px solid #0000FF;z-index:5;color:white;background-color:green">
+         Testing<br>
+         <label for="show_tts" style="display:inline">Town Names Sequential:</label><input type="button" id="show_tts" name="show_tts"><br>
+         <label id="tts_minl" for="tts_min" style="display:inline">Begin:</label><input style="display:inline" type="number" id="tts_min" name="tts_min" min="0" max="741">
+         <label id="tts_maxl" for="tts_max" style="display:inline">End:</label><input style="display:inline" type="number" id="tts_max" name="tts_max" min="0" max="741">
+          <label for="show_ttr" style="display:inline">Town Names Random:</label><input type="button" id="show_ttr" name="show_ttr"><br>
     </form>
     <div id="tileHistories" class="tooltip" style="display:none;position:absolute;top:0px;left:0px;width:200px;height:50px;border:2px solid #0000FF;z-index:5;background-color:orange">
       Hover over me to see History
@@ -97,28 +129,37 @@
       go_town.onclick=function(e){
         tname=document.getElementById("town").value
         tname=tname.toUpperCase().trim()
-        for ( p in tiles )
-        {
-          if ( (tiles[p].tname))
-          { 
-            if ((tiles[p].tname).toUpperCase().trim() == tname )
-            {
-              xt=tiles[p].xpos
-              yt=tiles[p].ypos
-              var pxs = HZM.currentMaxXpx
-              var rs = HZM.currentRowSize
-              var lft = Math.max(xt - (HZM.currentRowSize/2),0)
-              var tp = Math.max(yt - (HZM.currentColSize/2),0)
-              HZM.adjustArea( pxs, rs, lft, tp ); 
-              HZM.showArea()
-              HZM.scrollToXY(xt,yt);
-              tform=document.getElementById("townForm")
-              tform.style.top=HZM.currentTileSize*(yt-HZM.currentMinYtile)+"px"
-              tform.style.left=HZM.currentTileSize*(xt-HZM.currentMinXtile)+"px"
-              break;
-            }
-          }
-        }
+        goTownF(tname)
+      }
+      var show_tts=document.getElementById("show_tts")
+      show_tts.onclick=function(e){
+        tests.tt=1; 
+        tests.tm="sequential"; 
+        tests.tb= document.getElementById("tts_min").value
+        tests.te= document.getElementById("tts_min").value
+        doTests( tests )
+      }
+      var show_ttr=document.getElementById("show_ttr")
+      show_ttr.onclick=function(e){
+        tests.tt=1; 
+        tests.tm="random"; 
+        tests.tb= 0
+        tests.te= 1
+        doTests( tests )
+      }
+      var go_tts=document.getElementById("go_tts")
+      go_tts.onclick=function(e){
+        //alert("success"); 
+        tests.tb=tests.tb+1; 
+        doTests( tests )
+      }
+      var go_ttf = document.getElementById("go_ttf")
+      go_ttf.onclick=function(e){
+        tv = document.getElementById("town").value
+        //alert("fail:" + tv );
+        console.log("fail:" + tv );        
+        tests.tb=tests.tb+1; 
+        doTests( tests )
       }
       var go_townr =document.getElementById("go_townr")
       go_townr.onclick=function(e){townForm.style.display="none";}
@@ -128,21 +169,21 @@
       go_xy.onclick=function(e){
         xt=document.getElementById("xtile").value;
         yt=document.getElementById("ytile").value
-        //console.log("go_xy 1xt:"+ xt+" 1yt:"+yt); 
+        console.log("go_xy 1xt:"+ xt+" 1yt:"+yt); 
         if (xt>=0 && xt<=199 && yt>=0 && yt<=199) 
         {
           var pxs = HZM.currentMaxXpx
           var rs = HZM.currentRowSize
-          //console.log("go_xy HZM.currentRowSize="+HZM.currentRowSize)
-          var lft = Math.max(xt - (HZM.currentRowSize/2),0)
-          var tp = Math.max(yt - (HZM.currentColSize/2),0)
+          console.log("go_xy HZM.currentRowSize="+HZM.currentRowSize)
+          var lft = Math.max(xt - (HZM.currentRowSize),0)
+          var tp = Math.max(yt - (HZM.currentColSize),0)
           HZM.adjustArea( pxs, rs, lft, tp ); 
           HZM.showArea()
           HZM.scrollToXY(xt,yt);
           xyform=document.getElementById("xyForm")
           xyform.style.top=HZM.currentTileSize*(yt-HZM.currentMinYtile)+"px"
           xyform.style.left=HZM.currentTileSize*(xt-HZM.currentMinXtile)+"px"
-          //console.log(xyform.style.left +"," + xyform.style.top)
+          console.log(xyform.style.left +"," + xyform.style.top)
         } else { alert("Bad input"); }
       };
       var auxEls={
@@ -321,8 +362,10 @@
         //p.insertBefore(elAux,p.childNodes[0])
       }
       function createMainCanvases(cName, z)
-      {
-        if (document.getElementById(cName)) // return;, // original code preventd from recreating the canvas, now we need to allow for drawing at different sizes
+      { 
+                                            // original code preventd from recreating the canvas, 
+                                            // now we need to allow for drawing at different sizes
+        if (document.getElementById(cName)) // return;
         {
           c = document.getElementById(cName)
           c.parentNode.removeChild(c)
@@ -341,6 +384,59 @@
         cv.style.zIndex = z
         body=document.getElementById("body");
         body.insertBefore(cv,body.childNodes[0])
+      }
+      function goTownF(tname)
+      {
+        for ( p in tiles )
+        {
+          if ( (tiles[p].tname))
+          { 
+            if ((tiles[p].tname).toUpperCase().trim() == tname )
+            {
+              xt=tiles[p].xpos
+              yt=tiles[p].ypos
+              var pxs = HZM.currentMaxXpx
+              var rs = HZM.currentRowSize
+              var lft = Math.max(xt - (HZM.currentRowSize),0)
+              var tp = Math.max(yt - (HZM.currentColSize),0)
+              HZM.adjustArea( pxs, rs, lft, tp ); 
+              HZM.showArea()
+              HZM.scrollToXY(xt,yt);
+              tform=document.getElementById("townForm")
+              tform.style.top=HZM.currentTileSize*(yt-HZM.currentMinYtile)+"px"
+              tform.style.left=HZM.currentTileSize*(xt-HZM.currentMinXtile)+"px"
+              break;
+            }
+          }
+        }      
+      }
+      function doTests( tests )
+      {
+        if (!tests.tt) { alert("no tests"); return; }
+        else if (tests.tt == 1)
+        {
+          //var tests.tm="sequential" /* random or sequential */
+          if (tests.tm =="random"){
+            //alert("random")
+            tests.tb = Math.floor(Math.random() * tnames.length)
+          }
+          //else
+          //{
+            if ( tests.tb >= 0 && tests.tb < tnames.length )
+            {
+              alert("in a few moment town:" + tnames[tests.tb] +" will display in upper left")
+              ttf = document.getElementById("testTownForm")
+              ttf.style.display="inline"
+              tform = document.getElementById("townForm")
+              tform.style.display="inline";
+              goTownF(tnames[tests.tb].toUpperCase())
+              tform.style.top=HZM.currentTileSize*((yt+1)-HZM.currentMinYtile)+"px"
+              tform.style.left=HZM.currentTileSize*((xt+1)-HZM.currentMinXtile)+"px"
+              tform = document.getElementById("town").value = tnames[tests.tb]
+            } 
+            else { alert("!!!!! done!") }
+          //}
+        }
       }
       window.onload = function()
       {
@@ -422,12 +518,22 @@
             tform.style.top=e.offsetY+"px"; 
             tform.style.left=e.offsetX+"px";
           }
+          else if (e.altKey && e.shiftKey)
+          {
+            testform=document.getElementById("testing");
+            testform.style.display="inline";
+            testform.style.top=e.offsetY+"px"; 
+            testform.style.left=e.offsetX+"px" 
+            document.getElementById("tts_min").value=0
+            document.getElementById("tts_max").value=tnames.length-1
+          }
           else if (e.shiftKey)
           {
             eform = document.getElementById("eraDisplay")
             eform.style.display="inline";
             eform.style.top=e.offsetY+"px"; 
             eform.style.left=e.offsetX+"px";
+            
           }
           else if (e.altKey)
           {
